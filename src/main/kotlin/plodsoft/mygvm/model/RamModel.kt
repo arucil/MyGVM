@@ -1,9 +1,11 @@
 package plodsoft.mygvm.model
 
 
-const val RAM_SIZE = 65536
-
 interface RamModel : ReadableMemory, WritableMemory {
+    companion object {
+        val SIZE = 65536
+    }
+
     fun getUint8(address: Int): Int = getByte(address).toInt() and 0xff
     fun getUint16(address: Int): Int
     fun getInt16(address: Int): Int

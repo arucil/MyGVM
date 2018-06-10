@@ -1,16 +1,20 @@
 package plodsoft.mygvm.runtime
 
-import plodsoft.mygvm.model.KeyboardModel
-import plodsoft.mygvm.model.RamModel
-import plodsoft.mygvm.model.TextModel
+import plodsoft.mygvm.model.*
 import plodsoft.mygvm.util.readAll
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import kotlin.experimental.xor
 import kotlin.math.absoluteValue
 import kotlin.math.max
+import plodsoft.mygvm.model.ScreenModel.DrawMode
 
-class Runtime(private val ramModel: RamModel, private val textModel: TextModel, private val keyboardModel: KeyboardModel) {
+
+class Runtime(private val ramModel: RamModel,
+              private val screenModel: ScreenModel,
+              private val textModel: TextModel,
+              private val keyboardModel: KeyboardModel) {
+
     companion object {
         private const val CODE_INITIAL_OFFSET = 16
         private const val DATA_STACK_CAPACITY = 1024
@@ -23,16 +27,16 @@ class Runtime(private val ramModel: RamModel, private val textModel: TextModel, 
 
         private const val TEXT_BUFFER_ADDRESS = 0x0
 
-        private const val GRAPHIC_ADDRESS = 0x100
+        private const val GRAPHICS_ADDRESS = 0x100
 
-        private const val GRAPHIC_BUFFER_ADDRESS = 0x900
+        private const val GRAPHICS_BUFFER_ADDRESS = 0x900
 
         private const val TRUE = -1
         private const val FALSE = 0
     }
 
 
-    private lateinit var code: ByteArray
+    private var code: ByteArray = ByteArray(0)
     private var pc: Int = 0
     private val dataStack = DataStack(DATA_STACK_CAPACITY)
     private var currentFrameBase: Int = 0
@@ -45,6 +49,8 @@ class Runtime(private val ramModel: RamModel, private val textModel: TextModel, 
     private var stringStackPtr: Int = 0
 
     private var stringLiteralXorFactor: Byte = 0
+
+    private val randGen = RandomGen(0)
 
 
     /**
@@ -97,7 +103,7 @@ class Runtime(private val ramModel: RamModel, private val textModel: TextModel, 
             return true
         }
 
-        when (code[pc++].toInt()) {
+        when (code[pc++].toInt() and 0xff) {
             0x00 -> {}
 
             0x01 -> dataStack.push(fetchUint8())
@@ -135,23 +141,26 @@ class Runtime(private val ramModel: RamModel, private val textModel: TextModel, 
             0x12 -> dataStack.push(ramModel.getInt16(fetchUint16() + dataStack.pop() + currentFrameBase and 0xffff))
             0x13 -> dataStack.push(ramModel.getInt32(fetchUint16() + dataStack.pop() + currentFrameBase and 0xffff))
 
-            /* 获取局部变量的绝对地址指针 */
             0x14 -> dataStack.push(fetchUint16() + dataStack.pop() + currentFrameBase and 0xffff or 0x0001_0000)
             0x15 -> dataStack.push(fetchUint16() + dataStack.pop() + currentFrameBase and 0xffff or 0x0002_0000)
             0x16 -> dataStack.push(fetchUint16() + dataStack.pop() + currentFrameBase and 0xffff or 0x0004_0000)
+
             0x17 -> dataStack.push(fetchUint16() + dataStack.pop() and 0xffff)
             0x18 -> dataStack.push(fetchUint16() + dataStack.pop() + currentFrameBase and 0xffff)
             0x19 -> dataStack.push(fetchUint16() + currentFrameBase and 0xffff)
 
             0x1a -> dataStack.push(TEXT_BUFFER_ADDRESS)
-            0x1b -> dataStack.push(GRAPHIC_ADDRESS)
+            0x1b -> dataStack.push(GRAPHICS_ADDRESS)
 
-            0x1c -> dataStack.push(dataStack.pop().absoluteValue)
+            0x1c -> dataStack.push(-dataStack.pop())
 
             0x1d, 0x1e, 0x1f, 0x20 -> {
                 val ptr = dataStack.pop()
-                assert(ptr and 0xfff0_0000.toInt() == 0)
-                val addr = ptr and 0xffff
+                val addr = (ptr and 0xffff) + if (ptr and 0x0080_0000 != 0) { // 局部变量指针
+                    currentFrameBase
+                } else { // 全局变量
+                    0
+                }
                 val len = ptr ushr 16 and 0x7f
 
                 var value = when (len) {
@@ -198,8 +207,11 @@ class Runtime(private val ramModel: RamModel, private val textModel: TextModel, 
             0x35 -> {
                 val value = dataStack.pop()
                 val ptr = dataStack.pop()
-                assert(ptr and 0xfff0_0000.toInt() == 0)
-                val addr = ptr and 0xffff
+                val addr = (ptr and 0xffff) + if (ptr and 0x0080_0000 != 0) { // 局部 变量
+                    currentFrameBase
+                } else { // 全局变量
+                    0
+                }
                 val len = ptr ushr 16 and 0x7f
 
                 when (len) {
@@ -218,12 +230,12 @@ class Runtime(private val ramModel: RamModel, private val textModel: TextModel, 
             0x38 -> dataStack.pop()
 
             0x39 -> fetchUint24().let { newPC ->
-                if (dataStack.pop() == 0) {
+                if (dataStack.peek(0) == 0) {
                     pc = newPC
                 }
             }
             0x3a -> fetchUint24().let { newPC ->
-                if (dataStack.pop() != 0) {
+                if (dataStack.peek(0) != 0) {
                     pc = newPC
                 }
             }
@@ -270,7 +282,7 @@ class Runtime(private val ramModel: RamModel, private val textModel: TextModel, 
                 }
             }
 
-            0x42 -> dataStack.push(GRAPHIC_BUFFER_ADDRESS)
+            0x42 -> dataStack.push(GRAPHICS_BUFFER_ADDRESS)
 
             0x43 -> stringLiteralXorFactor = code[pc++]
 
@@ -299,7 +311,7 @@ class Runtime(private val ramModel: RamModel, private val textModel: TextModel, 
             }
 
             // getchar
-            0x81 -> dataStack.push(keyboardModel.waitForKey())
+            0x81 -> dataStack.push(keyboardModel.getLastKey(true))
 
             // printf
             0x82 -> {
@@ -310,7 +322,277 @@ class Runtime(private val ramModel: RamModel, private val textModel: TextModel, 
                 textModel.renderToScreen(0)
             }
 
-            else -> throw VMException("非法指令: 0x${code[pc - 1].toString(16)}")
+            // strcpy
+            0x83 -> {
+                var srcAddr = dataStack.pop() and 0xffff
+                var destAddr = dataStack.pop() and 0xffff
+
+                do {
+                    val b = ramModel.getByte(srcAddr++)
+                    ramModel.setByte(destAddr++, b)
+                } while (b != 0.toByte())
+            }
+
+            // strlen
+            0x84 -> {
+                val addr0 = dataStack.pop() and 0xffff
+                var addr = addr0
+
+                ///TODO: 检查字符串没有\0结尾
+                while (ramModel.getByte(addr) != 0.toByte()) {
+                    ++addr
+                }
+                dataStack.push(addr - addr0)
+            }
+
+            // SetScreen(uint8)
+            0x85 -> textModel.textMode =
+                if (dataStack.pop() == 0)
+                    TextModel.TextMode.LARGE_FONT
+                else
+                    TextModel.TextMode.SMALL_FONT
+
+            // UpdateLCD(char)
+            0x86 -> textModel.renderToScreen(dataStack.pop() and 0xff)
+
+            // Delay(int16)
+            0x87 -> Thread.sleep((dataStack.pop() and 0x7fff).toLong())
+
+            // WriteBlock
+            0x88 -> {
+                dataStack.shrink(6)
+                val x = dataStack.peek(0)
+                val y = dataStack.peek(1)
+                val width = dataStack.peek(2)
+                val height = dataStack.peek(3)
+                val mode = dataStack.peek(4)
+                val addr = dataStack.peek(5) and 0xffff
+
+                screenModel.drawBytes(x, y, width, height, ramModel, addr, mode)
+            }
+
+            // Refresh
+            0x89 -> screenModel.renderBufferToGraphics()
+
+            // TextOut
+            0x8a -> {
+                dataStack.shrink(4)
+                val x = dataStack.peek(0)
+                val y = dataStack.peek(1)
+                var addr = dataStack.peek(2)
+                val mode = dataStack.peek(3)
+
+                val str = with(ByteArrayOutputStream()) {
+                    ///TODO: 检查字符串没有\0结尾
+
+                    while (true) {
+                        val b = ramModel.getByte(addr++)
+                        if (b == 0.toByte()) {
+                            break
+                        }
+                        write(b.toInt())
+                    }
+
+                    toByteArray()
+                }
+
+                screenModel.drawString(x, y, str,
+                        if ((mode and 0x80) != 0) TextModel.TextMode.SMALL_FONT
+                        else TextModel.TextMode.LARGE_FONT,
+                        mode)
+            }
+
+            // Block
+            0x8b -> {
+                dataStack.shrink(5)
+                val x = dataStack.peek(0)
+                val y = dataStack.peek(1)
+                val x1 = dataStack.peek(2)
+                val y1 = dataStack.peek(3)
+                val mode = dataStack.peek(4) xor DrawMode.GRAPHICS_DRAW_MASK
+                screenModel.drawRect(x, y, x1, y1, true, mode)
+            }
+
+            // Rectangle
+            0x8c -> {
+                dataStack.shrink(5)
+                val x = dataStack.peek(0)
+                val y = dataStack.peek(1)
+                val x1 = dataStack.peek(2)
+                val y1 = dataStack.peek(3)
+                val mode = dataStack.peek(4) xor DrawMode.GRAPHICS_DRAW_MASK
+                screenModel.drawRect(x, y, x1, y1, false, mode)
+            }
+
+            // exit
+            0x8d -> isOver = true
+
+            // ClearScreen
+            0x8e -> screenModel.clearBuffer()
+
+            // abs
+            0x8f -> dataStack.push(dataStack.pop().absoluteValue)
+
+            // rand
+            0x90 -> dataStack.push(randGen.next())
+
+            // srand
+            0x91 -> randGen.seed = dataStack.pop()
+
+            // Locate
+            0x92 -> {
+                dataStack.shrink(2)
+                val row = dataStack.peek(0)
+                val col = dataStack.peek(1)
+                textModel.setLocation(row, col)
+            }
+
+            // Inkey
+            0x93 -> dataStack.push(keyboardModel.getLastKey(false))
+
+            // Point
+            0x94 -> {
+                dataStack.shrink(3)
+                val x = dataStack.peek(0)
+                val y = dataStack.peek(1)
+                val mode = dataStack.peek(2) xor DrawMode.GRAPHICS_DRAW_MASK
+                screenModel.drawPoint(x, y, mode)
+            }
+
+            // GetPoint
+            0x95 -> {
+                dataStack.shrink(2)
+                val x = dataStack.peek(0)
+                val y = dataStack.peek(1)
+                dataStack.push(screenModel.testPoint(x, y))
+            }
+
+            // Line
+            0x96 -> {
+                dataStack.shrink(5)
+                val x = dataStack.peek(0)
+                val y = dataStack.peek(1)
+                val x1 = dataStack.peek(2)
+                val y1 = dataStack.peek(3)
+                val mode = dataStack.peek(4) xor DrawMode.GRAPHICS_DRAW_MASK
+                screenModel.drawLine(x, y, x1, y1, mode)
+            }
+
+            // Box
+            0x97 -> {
+                dataStack.shrink(6)
+                val x = dataStack.peek(0)
+                val y = dataStack.peek(1)
+                val x1 = dataStack.peek(2)
+                val y1 = dataStack.peek(3)
+                val fill = dataStack.peek(4) != 0
+                val mode = dataStack.peek(5) xor DrawMode.GRAPHICS_DRAW_MASK
+                screenModel.drawRect(x, y, x1, y1, fill, mode)
+            }
+
+            // Circle
+            0x98 -> {
+                dataStack.shrink(5)
+                val x = dataStack.peek(0)
+                val y = dataStack.peek(1)
+                val r = dataStack.peek(2)
+                val fill = dataStack.peek(3) != 0
+                val mode = dataStack.peek(4) xor DrawMode.GRAPHICS_DRAW_MASK
+                screenModel.drawOval(x, y, r, r, fill, mode)
+            }
+
+            // Ellipse
+            0x99 -> {
+                dataStack.shrink(6)
+                val x = dataStack.peek(0)
+                val y = dataStack.peek(1)
+                val rx = dataStack.peek(2)
+                val ry = dataStack.peek(3)
+                val fill = dataStack.peek(4) != 0
+                val mode = dataStack.peek(5) xor DrawMode.GRAPHICS_DRAW_MASK
+                screenModel.drawOval(x, y, rx, ry, fill, mode)
+            }
+
+            // Beep
+            0x9a -> {}
+
+            // isalnum
+            0x9b -> testUint8 { it in '0'.toInt()..'9'.toInt() || it in 'a'.toInt()..'z'.toInt() || it in 'A'.toInt()..'Z'.toInt() }
+
+            // isalpha
+            0x9c -> testUint8 { it in 'a'.toInt()..'z'.toInt() || it in 'A'.toInt()..'Z'.toInt() }
+
+            // iscntrl
+            0x9d -> testUint8 { it in 0..0x1f || it == 0x7f }
+
+            // isdigit
+            0x9e -> testUint8 { it in '0'.toInt()..'9'.toInt() }
+
+            // isgraph
+            0x9f -> testUint8 { it in 0x21..0x7e }
+
+            // islower
+            0xa0 -> testUint8 { it in 'a'.toInt()..'z'.toInt() }
+
+            // isprint
+            0xa1 -> testUint8 { it in 0x20..0x7e }
+
+            // ispunct
+            0xa2 -> testUint8 { it in 0x21..0x2f || it in 0x3a..0x40 || it in 0x5b..0x60 || it in 0x7b..0x7e }
+
+            // isspace
+            0xa3 -> testUint8 { it in 9..13 || it == 0x20 }
+
+            // isupper
+            0xa4 -> testUint8 { it in 'A'.toInt()..'Z'.toInt() }
+
+            // isxdigit
+            0xa5 -> testUint8 { it in '0'.toInt()..'9'.toInt() || it in 'A'.toInt()..'F'.toInt() || it in 'a'.toInt()..'f'.toInt() }
+
+            // strcat
+            0xa6 -> {
+                ///TODO: 检查字符串没有\0结尾
+
+                var srcAddr = dataStack.pop() and 0xffff
+                var destAddr = dataStack.pop() and 0xffff
+
+                while (ramModel.getByte(destAddr) != 0.toByte()) {
+                    ++destAddr
+                }
+
+                do {
+                    val b = ramModel.getByte(srcAddr++)
+                    ramModel.setByte(destAddr++, b)
+                } while (b != 0.toByte())
+            }
+
+            // strchr
+            0xa7 -> {
+                ///TODO: 检查字符串没有\0结尾
+
+                val c = dataStack.pop().toByte()
+                var addr = dataStack.pop() and 0xffff
+
+                while (true) {
+                    val b = ramModel.getByte(addr)
+                    if (b == c) {
+                        break
+                    }
+                    if (b == 0.toByte()) {
+                        addr = 0
+                        break
+                    }
+                    +addr
+                }
+
+                dataStack.push(addr)
+            }
+
+            // strcmp
+            0xa8 -> {
+            }
+
+            else -> throw VMException("非法指令: 0x${(code[pc - 1].toInt() and 0xff).toString(16)}")
         }
         return isOver
     }
@@ -324,10 +606,24 @@ class Runtime(private val ramModel: RamModel, private val textModel: TextModel, 
      */
     private fun fetchUint8(): Int = code[pc++].toInt() and 0xff
 
-    private fun fetchUint16(): Int = (code[pc].toInt() or (code[pc + 1].toInt() shl 8)).also { pc += 2 }
-    private fun fetchInt16(): Int = (code[pc].toInt() or (code[pc + 1].toInt() shl 8)).toShort().toInt().also { pc += 2 }
-    private fun fetchUint24(): Int = (code[pc].toInt() or (code[pc + 1].toInt() shl 8) or (code[pc + 2].toInt() shl 16)).also { pc += 3 }
-    private fun fetchInt32(): Int = (code[pc].toInt() or (code[pc + 1].toInt() shl 8) or (code[pc + 2].toInt() shl 16)).also { pc += 4 }
+    private fun fetchUint16(): Int =
+        ((code[pc].toInt() and 0xff) or
+        (code[pc + 1].toInt() and 0xff shl 8)).also { pc += 2 }
+
+    private fun fetchInt16(): Int =
+        ((code[pc].toInt() and 0xff) or
+        (code[pc + 1].toInt() shl 8)).toShort().toInt().also { pc += 2 }
+
+    private fun fetchUint24(): Int =
+        ((code[pc].toInt() and 0xff) or
+        (code[pc + 1].toInt() and 0xff shl 8) or
+        (code[pc + 2].toInt() and 0xff shl 16)).also { pc += 3 }
+
+    private fun fetchInt32(): Int =
+        ((code[pc].toInt() and 0xff) or
+        (code[pc + 1].toInt() and 0xff shl 8) or
+        (code[pc + 2].toInt() and 0xff shl 16) or
+        (code[pc + 3].toInt() shl 24)).also { pc += 4 }
 
 
     /**
@@ -336,6 +632,44 @@ class Runtime(private val ramModel: RamModel, private val textModel: TextModel, 
     private fun formatString(argc: Int): ByteArray =
         with (ByteArrayOutputStream()) {
             var formatAddr = dataStack.peek(0)
+            var argPtr = 0
+
+            outer@while (true) {
+                val c = ramModel.getUint8(formatAddr++)
+                if (c == 0) {
+                    break
+                }
+                when (c) {
+                    '%'.toInt() -> {
+                        val c1 = ramModel.getUint8(formatAddr++)
+                        when (c1) {
+                            0 -> break@outer
+                            'd'.toInt() -> write(dataStack.peek(++argPtr).toString().toByteArray())
+                            'c'.toInt() -> write(dataStack.peek(++argPtr) and 0xff)
+
+                            ///TODO: 检测%s没有\0结尾
+                            's'.toInt() -> {
+                                var addr = dataStack.peek(++argPtr) and 0xffff
+                                while (true) {
+                                    val b = ramModel.getByte(addr++)
+                                    if (b == 0.toByte()) {
+                                        break
+                                    }
+                                    write(b.toInt())
+                                }
+                            }
+
+                            else -> write(c1)
+                        }
+                    }
+                    else -> write(c)
+                }
+            }
+
             toByteArray()
         }
+
+    private inline fun testUint8(predicate: (Int) -> Boolean) {
+        dataStack.push(predicate(dataStack.pop() and 0xff))
+    }
 }

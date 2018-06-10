@@ -9,8 +9,11 @@ import java.io.InputStream
 fun InputStream.readAll(): ByteArray =
     with (ByteArrayOutputStream()) {
         val buffer = ByteArray(1024)
-        var count = read(buffer)
-        while (count >= 0) {
+        while (true) {
+            val count = read(buffer)
+            if (count < 0) {
+                break
+            }
             write(buffer, 0, count)
         }
         toByteArray()

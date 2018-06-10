@@ -50,22 +50,22 @@ printf、sprintf函数调用时最后会加上01 xx，表示参数总个数。�
 | 07 | word16(addr)   | 弹栈offset,把offset+addr处的uint8压栈 |
 | 08 | word16(addr)   | 弹栈offset,把offset+addr处的int16压栈 |
 | 09 | word16(addr)   | 弹栈offset,把offset+addr处的uint32压栈 |
-| 0a | word16(addr)   | 弹栈offset,把offset+addr &#124; 0x00010000压栈，表示uint8指针 |
+| 0a | word16(addr)   | 弹栈offset,把offset+addr &#124; 0x00010000压栈，表示uint8指针(用于全局数组元素赋值) |
 | 0b | word16(addr)   | 弹栈offset,把offset+addr &#124; 0x00020000压栈，表示int16指针 |
 | 0c | word16(addr)   | 弹栈offset,把offset+addr &#124; 0x00040000压栈，表示uint32指针 |
 | 0d | zstr           | 把字符串(以\0结尾)保存到字符串地址空间, 并把该字符串保存的地址addr压栈，表示字符串指针 |
 | 0e | word16(offset) | 把栈帧offset处的uint8压栈，即获取局部变量的值。 |
 | 0f | word16(offset) | 把栈帧offset处的int16压栈，即获取局部变量的值。 |
 | 10 | word16(offset) | 把栈帧offset处的uint32压栈，即获取局部变量的值。 |
-| 11 | word16(offset) | 弹栈offset1,把栈帧offset+offset1处的uint8压栈 |
+| 11 | word16(offset) | 弹栈offset1,把栈帧offset+offset1处的uint8压栈(用于获取局部数组的元素) |
 | 12 | word16(offset) | 弹栈offset1,把栈帧offset+offset1处的int16压栈 |
 | 13 | word16(offset) | 弹栈offset1,把栈帧offset+offset1处的uint32压栈 |
-| 14 | word16(offset) | 弹栈offset1,把offset+offset1 &#124; 0x00810000压栈，即指向局部变量的指针（eastsun的GVM还是全局指针？） |
+| 14 | word16(offset) | 弹栈offset1,把offset+offset1 &#124; 0x00810000压栈，即指向局部变量的指针(用于局部数组的元素赋值)（eastsun的GVM还是全局指针？） |
 | 15 | word16(offset) | 弹栈offset1,把offset+offset1 &#124; 0x00820000压栈 |
 | 16 | word16(offset) | 弹栈offset1,把offset+offset1 &#124; 0x00840000压栈 |
 | 17 | word16(addr)   | 弹栈offset,把addr+offset压栈 |
-| 18 | word16(offset) | 弹栈offset1,把offset+offset1压栈（eastsun的GVM是加上栈帧基址变成指针？） |
-| 19 | word16(offset) | 把offset压栈（eastsun的GVM是加上栈帧基址变成指针？） |
+| 18 | word16(offset) | 弹栈offset1,把栈帧偏移offset+offset1压栈（eastsun的GVM是加上栈帧基址变成指针？） |
+| 19 | word16(offset) | 把栈帧偏移offset压栈（eastsun的GVM是加上栈帧基址变成指针？） |
 | 1a | - | _TEXT压栈 |
 | 1b | - | _GRAPH压栈 |
 | 1c | - | 弹栈int32, 取负数，压栈 |
@@ -136,7 +136,7 @@ printf、sprintf函数调用时最后会加上01 xx，表示参数总个数。�
 | 84 | int strlen(int) |  |
 | 85 | void SetScreen(char mode) | 清屏并设置字体大小,mode=0大字体, =1小字体 |
 | 86 | void UpdateLCD(char mode) | mode从高到低的bit代表是否刷新屏幕从上往下的每一行，0代表刷新，1不刷新 |
-| 87 | void Delay(int value) | 延迟value/256秒 |
+| 87 | void Delay(int value) | 延迟ms毫秒 |
 | 88 | void WriteBlock(int x,int y,int width,int height,int type,int data) | type的bit6为1时直接在屏幕上作图<br>bit5为1时图形左右反转（要求x和width为8的倍数）<br>bit3为1时图形反显<br>bit2-0: 1:copy 2:not 3:or 4:and 5:xor |
 | 89 | void Refresh() | 把图形缓冲区的内容刷新到屏幕 |
 | 8A | void TextOut(int x,int y,int string,int type) | type的bit7=1大字体，=0小字体<br>bit6为1时直接在屏幕上绘图<br>bit5为1时所画图形左右反转（要求图形宽度和x坐标都必须是8的整数倍）<br>bit3为1时图形反显<br>bit2-0: 1:copy 2:not 3:or 4:and 5:xor  |
@@ -189,7 +189,7 @@ printf、sprintf函数调用时最后会加上01 xx，表示参数总个数。�
 | B9 | int MakeDir(int path) | 成功返回非零值，否则返回0 |
 | BA | int DeleteFile(int filename) | 成功返回非零值 |
 | BB | char Getms() | 返回1/256秒数 |
-| BC | int CheckKey(char key) | 检测按键是否按下<br>若key>=128则检测所有按键 |
+| BC | int CheckKey(char key) | 检测按键是否按下，若按下则返回-1，否则返回0<br>若key>=128则检测所有按键,如果有键按下则返回键值 |
 | BD | void memmove(int dest,int src,int count) |  |
 | BE | long Crc16(int mem,int len) |  |
 | BF | void Secret(int mem,int len,int string) | 用string进行简单的xor加密 |
