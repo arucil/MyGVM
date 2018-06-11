@@ -1,4 +1,4 @@
-package plodsoft.mygvm.model
+package plodsoft.mygvm.keyboard
 
 /**
  * 键盘model

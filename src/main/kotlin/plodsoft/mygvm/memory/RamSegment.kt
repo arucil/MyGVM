@@ -1,4 +1,4 @@
-package plodsoft.mygvm.model
+package plodsoft.mygvm.memory
 
 class RamSegment(val backingRam: RamModel, val startingAddress: Int, val size: Int) : ReadableMemory, WritableMemory {
     override fun getByte(address: Int): Byte = backingRam.getByte(address + startingAddress)

@@ -1,5 +1,6 @@
 package plodsoft.mygvm.model
 
+import plodsoft.mygvm.text.TextModel
 import java.io.OutputStream
 import java.io.PrintStream
 

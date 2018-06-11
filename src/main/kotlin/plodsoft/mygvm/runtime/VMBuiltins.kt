@@ -1,7 +1,7 @@
 package plodsoft.mygvm.runtime
 
-import plodsoft.mygvm.model.ReadableMemory
-import plodsoft.mygvm.model.WritableMemory
+import plodsoft.mygvm.memory.ReadableMemory
+import plodsoft.mygvm.memory.WritableMemory
 import kotlin.experimental.xor
 
 

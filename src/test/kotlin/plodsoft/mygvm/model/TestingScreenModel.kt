@@ -1,5 +1,9 @@
 package plodsoft.mygvm.model
 
+import plodsoft.mygvm.memory.ReadableMemory
+import plodsoft.mygvm.memory.WritableMemory
+import plodsoft.mygvm.screen.ScreenModel
+import plodsoft.mygvm.text.TextModel
 import plodsoft.mygvm.util.Rect
 import java.io.OutputStream
 import java.io.PrintStream

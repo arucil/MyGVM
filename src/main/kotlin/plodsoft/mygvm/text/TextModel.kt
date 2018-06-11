@@ -1,4 +1,4 @@
-package plodsoft.mygvm.model
+package plodsoft.mygvm.text
 
 /**
  * 文本缓冲区model

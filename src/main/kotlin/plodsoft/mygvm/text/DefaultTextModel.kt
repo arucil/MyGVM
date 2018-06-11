@@ -1,6 +1,8 @@
-package plodsoft.mygvm.model
+package plodsoft.mygvm.text
 
-import plodsoft.mygvm.model.TextModel.TextMode
+import plodsoft.mygvm.memory.RamSegment
+import plodsoft.mygvm.text.TextModel.TextMode
+import plodsoft.mygvm.screen.ScreenModel
 
 class DefaultTextModel(private val ram: RamSegment, private val screenModel: ScreenModel): TextModel {
     companion object {

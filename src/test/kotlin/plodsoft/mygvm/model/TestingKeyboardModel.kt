@@ -1,5 +1,6 @@
 package plodsoft.mygvm.model
 
+import plodsoft.mygvm.keyboard.KeyboardModel
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.PrintStream

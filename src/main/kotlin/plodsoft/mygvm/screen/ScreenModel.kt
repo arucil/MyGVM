@@ -1,5 +1,8 @@
-package plodsoft.mygvm.model
+package plodsoft.mygvm.screen
 
+import plodsoft.mygvm.memory.ReadableMemory
+import plodsoft.mygvm.memory.WritableMemory
+import plodsoft.mygvm.text.TextModel
 import plodsoft.mygvm.util.Rect
 
 

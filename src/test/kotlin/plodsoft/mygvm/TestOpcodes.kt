@@ -1,7 +1,7 @@
 package plodsoft.mygvm.testopcodes
 
 import plodsoft.mygvm.TestingInputStream
-import plodsoft.mygvm.model.DefaultRamModel
+import plodsoft.mygvm.memory.DefaultRamModel
 import plodsoft.mygvm.model.TestingKeyboardModel
 import plodsoft.mygvm.model.TestingScreenModel
 import plodsoft.mygvm.model.TestingTextModel

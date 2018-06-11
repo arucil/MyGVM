@@ -1,6 +1,10 @@
-package plodsoft.mygvm.model
+package plodsoft.mygvm.screen
 
-import plodsoft.mygvm.model.ScreenModel.Companion.BYTE_WIDTH
+import plodsoft.mygvm.memory.RamSegment
+import plodsoft.mygvm.memory.ReadableMemory
+import plodsoft.mygvm.memory.WritableMemory
+import plodsoft.mygvm.text.TextModel
+import plodsoft.mygvm.screen.ScreenModel.Companion.BYTE_WIDTH
 import plodsoft.mygvm.util.Rect
 import plodsoft.mygvm.util.between
 

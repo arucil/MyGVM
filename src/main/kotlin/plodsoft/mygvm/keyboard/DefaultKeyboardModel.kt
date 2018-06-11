@@ -1,4 +1,4 @@
-package plodsoft.mygvm.model
+package plodsoft.mygvm.keyboard
 
 class DefaultKeyboardModel : KeyboardModel {
     override fun getLastKey(wait: Boolean): Int {

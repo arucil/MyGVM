@@ -1,4 +1,4 @@
-package plodsoft.mygvm.model
+package plodsoft.mygvm.memory
 
 interface WritableMemory {
     fun setByte(address: Int, value: Byte)

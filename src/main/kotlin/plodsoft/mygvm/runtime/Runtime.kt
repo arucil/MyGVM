@@ -1,13 +1,21 @@
 package plodsoft.mygvm.runtime
 
-import plodsoft.mygvm.model.*
+import plodsoft.mygvm.keyboard.DefaultKeyboardModel
+import plodsoft.mygvm.keyboard.KeyboardModel
+import plodsoft.mygvm.memory.DefaultRamModel
+import plodsoft.mygvm.memory.RamModel
+import plodsoft.mygvm.memory.RamSegment
+import plodsoft.mygvm.screen.DefaultScreenModel
+import plodsoft.mygvm.screen.ScreenModel
 import plodsoft.mygvm.util.readAll
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import kotlin.experimental.xor
 import kotlin.math.absoluteValue
 import kotlin.math.max
-import plodsoft.mygvm.model.ScreenModel.DrawMode
+import plodsoft.mygvm.screen.ScreenModel.DrawMode
+import plodsoft.mygvm.text.DefaultTextModel
+import plodsoft.mygvm.text.TextModel
 import java.util.*
 
 
