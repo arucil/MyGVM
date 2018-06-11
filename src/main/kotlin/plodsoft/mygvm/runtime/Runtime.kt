@@ -37,21 +37,16 @@ class Runtime(private val ramModel: RamModel,
 
 
         /**
-         * 从address读取以\0结尾的字符串
+         * 获取从addr开始的以\0结尾的字符串的结尾(\0)地址
          */
-        private fun RamModel.getString(address: Int): ByteArray =
+        private inline fun RamModel.getStringEnd(addr: Int): Int {
             ///TODO: 检查字符串没有\0结尾
-            with (ByteArrayOutputStream()) {
-                var i = address
-                while (true) {
-                    val b = getByte(i++)
-                    if (b == 0.toByte()) {
-                        break
-                    }
-                    write(b.toInt())
-                }
-                toByteArray()
+            var addr1 = addr
+            while (getByte(addr1) != 0.toByte()) {
+                ++addr1
             }
+            return addr1
+        }
     }
 
 
@@ -290,7 +285,8 @@ class Runtime(private val ramModel: RamModel,
 
                 var addr = currentFrameBase + ADDRESS_BYTES + 2
                 for (i in 0 until argc) {
-                    ramModel.setInt32(currentFrameBase + ADDRESS_BYTES + 2 + i * 4, dataStack.peek(i))
+                    ramModel.setInt32(addr, dataStack.peek(i))
+                    addr += 4
                 }
             }
             0x3f -> {
@@ -345,7 +341,6 @@ class Runtime(private val ramModel: RamModel,
                 val argc = dataStack.pop()
                 dataStack.shrink(argc)
                 textModel.addBytes(formatString())
-                ///TODO: 刷新屏幕
                 textModel.renderToScreen(0)
             }
 
@@ -362,14 +357,9 @@ class Runtime(private val ramModel: RamModel,
 
             // strlen
             0x84 -> {
-                val addr0 = dataStack.pop() and 0xffff
-                var addr = addr0
+                val addr = dataStack.pop() and 0xffff
 
-                ///TODO: 检查字符串没有\0结尾
-                while (ramModel.getByte(addr) != 0.toByte()) {
-                    ++addr
-                }
-                dataStack.push(addr - addr0)
+                dataStack.push(ramModel.getStringEnd(addr) - addr)
             }
 
             // SetScreen(uint8)
@@ -409,24 +399,12 @@ class Runtime(private val ramModel: RamModel,
                 dataStack.shrink(4)
                 val x = dataStack.peek(0)
                 val y = dataStack.peek(1)
-                var addr = dataStack.peek(2)
+                val addr = dataStack.peek(2)
                 val mode = dataStack.peek(3)
 
-                val str = with(ByteArrayOutputStream()) {
-                    ///TODO: 检查字符串没有\0结尾
+                var addr1 = ramModel.getStringEnd(addr)
 
-                    while (true) {
-                        val b = ramModel.getByte(addr++)
-                        if (b == 0.toByte()) {
-                            break
-                        }
-                        write(b.toInt())
-                    }
-
-                    toByteArray()
-                }
-
-                screenModel.drawString(x, y, str,
+                screenModel.drawString(x, y, ramModel, addr, addr1 - addr,
                         if ((mode and 0x80) != 0) TextModel.TextMode.SMALL_FONT
                         else TextModel.TextMode.LARGE_FONT,
                         mode)
@@ -584,15 +562,13 @@ class Runtime(private val ramModel: RamModel,
                 ///TODO: 检查字符串没有\0结尾
 
                 var srcAddr = dataStack.pop() and 0xffff
-                var destAddr = dataStack.pop() and 0xffff
+                val destAddr = dataStack.pop() and 0xffff
 
-                while (ramModel.getByte(destAddr) != 0.toByte()) {
-                    ++destAddr
-                }
+                var destAddr1 = ramModel.getStringEnd(destAddr)
 
                 do {
                     val b = ramModel.getByte(srcAddr++)
-                    ramModel.setByte(destAddr++, b)
+                    ramModel.setByte(destAddr1++, b)
                 } while (b != 0.toByte())
             }
 
@@ -687,9 +663,7 @@ class Runtime(private val ramModel: RamModel,
                 val b = dataStack.peek(1).toByte()
                 val count = dataStack.peek(2) and 0xffff
 
-                for (i in addr until (addr + count)) {
-                    ramModel.setByte(i, b)
-                }
+                ramModel.fill(addr, count, b)
             }
 
             // memcpy
@@ -735,15 +709,7 @@ class Runtime(private val ramModel: RamModel,
                 val srcAddr = dataStack.peek(1) and 0xffff
                 val count = dataStack.peek(2) and 0xffff
 
-                if (srcAddr >= destAddr) {
-                    for (i in 0 until count) {
-                        ramModel.setByte(destAddr + i,ramModel.getByte(srcAddr + i))
-                    }
-                } else {
-                    for (i in (count - 1) downTo 0) {
-                        ramModel.setByte(destAddr + i, ramModel.getByte(srcAddr + i))
-                    }
-                }
+                ramModel.copy(destAddr, srcAddr, count)
             }
 
             // Crc16
@@ -814,7 +780,7 @@ class Runtime(private val ramModel: RamModel,
                 val width = dataStack.peek(2)
                 val height = dataStack.peek(3)
                 val mode = dataStack.peek(4)
-                val addr = dataStack.peek(4)
+                val addr = dataStack.peek(5)
 
                 screenModel.saveData(x, y, width, height, (mode and DrawMode.GRAPHICS_DRAW_MASK) != 0, ramModel, addr)
             }

@@ -23,8 +23,8 @@ class TestingScreenModel(outputStream: OutputStream) : ScreenModel {
         out.println("[write block $x,$y,$width,$height,0x${address.toString(16)},0x${mode.toString(16)}]")
     }
 
-    override fun drawString(x: Int, y: Int, str: ByteArray, font: TextModel.TextMode, mode: Int) {
-        out.println("[text out $x,$y,${String(str, Charset.forName("gb2312"))},$font,0x${mode.toString(16)}]")
+    override fun drawString(x: Int, y: Int, mem: ReadableMemory, addr: Int, len: Int, font: TextModel.TextMode, mode: Int) {
+        out.println("[text out $x,$y,${String(mem.getString(addr), Charset.forName("gb2312"))},$font,0x${mode.toString(16)}]")
     }
 
     override fun drawRect(x: Int, y: Int, x1: Int, y1: Int, fill: Boolean, mode: Int) {

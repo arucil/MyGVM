@@ -65,26 +65,23 @@ interface ScreenModel {
      * @param width
      * @param height
      * @param mem
-     * @param address
+     * @param addr
      * @param mode DrawMode, DataDrawMode
      */
-    fun drawData(x: Int, y: Int, width: Int, height: Int, mem: ReadableMemory, address: Int, mode: Int)
+    fun drawData(x: Int, y: Int, width: Int, height: Int, mem: ReadableMemory, addr: Int, mode: Int)
 
     /**
      * 从屏幕或缓冲区读取图形数据保存到内存
      * @param isFromGraphics 是否从屏幕读取图形数据. 若为false则从缓冲区读取
      */
-    fun saveData(x: Int, y: Int, width: Int, height: Int, isFromGraphics: Boolean, mem: WritableMemory, address: Int)
+    fun saveData(x: Int, y: Int, width: Int, height: Int, isFromGraphics: Boolean, mem: WritableMemory, addr: Int)
 
     /**
-     * 绘制文字
-     * @param x
-     * @param y
-     * @param str
+     * 从mem的addr地址开始读取len个字节文本并绘制
      * @param font 大字体/小字体
-     * @mode mode DrawMode, DataDrawMode
+     * @param mode DrawMode, DataDrawMode
      */
-    fun drawString(x: Int, y: Int, str: ByteArray, font: TextModel.TextMode, mode: Int)
+    fun drawString(x: Int, y: Int, mem: ReadableMemory, addr: Int, len: Int, font: TextModel.TextMode, mode: Int)
 
     /**
      * 绘制矩形

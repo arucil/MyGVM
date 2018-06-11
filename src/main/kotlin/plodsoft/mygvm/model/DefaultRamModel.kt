@@ -1,5 +1,7 @@
 package plodsoft.mygvm.model
 
+import java.util.*
+
 class DefaultRamModel : RamModel {
     private val data = ByteArray(RamModel.SIZE)
 
@@ -33,5 +35,13 @@ class DefaultRamModel : RamModel {
 
     override fun setByte(address: Int, value: Byte) {
         data[address] = value
+    }
+
+    override fun fill(address: Int, count: Int, value: Byte) {
+        Arrays.fill(data, address, address + count, value)
+    }
+
+    override fun copy(destAddress: Int, srcAddress: Int, count: Int) {
+        System.arraycopy(data, srcAddress, data, destAddress, count)
     }
 }

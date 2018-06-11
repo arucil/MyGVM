@@ -1,5 +1,6 @@
 package plodsoft.mygvm.model
 
+
 /**
  * 内存model
  */
@@ -19,4 +20,20 @@ interface RamModel : ReadableMemory, WritableMemory {
     fun setInt16(address: Int, value: Int)
     fun setUint24(address: Int, value: Int)
     fun setInt32(address: Int, value: Int)
+
+
+    /**
+     * 两块内存区域可以重叠
+     */
+    fun copy(destAddress: Int, srcAddress: Int, count: Int) {
+        if (srcAddress >= destAddress) {
+            for (i in 0 until count) {
+                setByte(destAddress + i, getByte(srcAddress + i))
+            }
+        } else {
+            for (i in (count - 1) downTo 0) {
+                setByte(destAddress + i, getByte(srcAddress + i))
+            }
+        }
+    }
 }
