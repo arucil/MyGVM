@@ -1,5 +1,8 @@
 package plodsoft.mygvm.model
 
+/**
+ * 文本缓冲区model
+ */
 interface TextModel {
 
     enum class TextMode {
@@ -11,6 +14,11 @@ interface TextModel {
      * 获取/设置 字体模式
      */
     var textMode: TextMode
+
+    /**
+     * 清除屏幕并复位坐标
+     */
+    fun clear()
 
     /**
      * 不刷新屏幕

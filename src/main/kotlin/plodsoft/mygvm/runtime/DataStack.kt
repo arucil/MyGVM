@@ -1,5 +1,8 @@
 package plodsoft.mygvm.runtime
 
+/**
+ * lava虚拟机数据站. 操作数据的单位是int32
+ */
 class DataStack(val capacity: Int) {
     private val data = IntArray(capacity)
     private var top = 0

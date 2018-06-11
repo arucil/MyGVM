@@ -31,4 +31,8 @@ class TestingTextModel(val outputStream: OutputStream) : TextModel {
     override fun renderToScreen(renderRows: Int) {
         out.println("[render text to screen: 0b${renderRows.toString(2)}]")
     }
+
+    override fun clear() {
+        out.println("[clear text]")
+    }
 }

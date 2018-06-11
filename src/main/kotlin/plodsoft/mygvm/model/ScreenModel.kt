@@ -4,6 +4,8 @@ import plodsoft.mygvm.util.Rect
 
 
 /**
+ * 屏幕和屏幕缓冲区model
+ *
  * 其中的绘图函数默认在缓冲区绘制
  */
 interface ScreenModel {
@@ -18,7 +20,7 @@ interface ScreenModel {
     }
 
     /**
-     * 用于drawBytes, drawString
+     * 用于drawData, drawString
      */
     object DataDrawMode {
         const val HORIZONTAL_MIRROR_MASK = 0x20
@@ -66,7 +68,13 @@ interface ScreenModel {
      * @param address
      * @param mode DrawMode, DataDrawMode
      */
-    fun drawBytes(x: Int, y: Int, width: Int, height: Int, mem: ReadableMemory, address: Int, mode: Int)
+    fun drawData(x: Int, y: Int, width: Int, height: Int, mem: ReadableMemory, address: Int, mode: Int)
+
+    /**
+     * 从屏幕或缓冲区读取图形数据保存到内存
+     * @param isFromGraphics 是否从屏幕读取图形数据. 若为false则从缓冲区读取
+     */
+    fun saveData(x: Int, y: Int, width: Int, height: Int, isFromGraphics: Boolean, mem: WritableMemory, address: Int)
 
     /**
      * 绘制文字
@@ -108,6 +116,28 @@ interface ScreenModel {
      * @param mode DrawMode, ShapeDrawMode
      */
     fun drawPoint(x: Int, y: Int, mode: Int)
+
+
+    enum class ScrollDirection {
+        Left, // 屏幕往左滚动
+        Right // 屏幕往右滚动
+    }
+
+    /**
+     * 屏幕滚动一个像素
+     */
+    fun scroll(dir: ScrollDirection)
+
+
+    enum class MirrorDirection {
+        Vertical,
+        Horizontal
+    }
+
+    /**
+     * 屏幕翻转
+     */
+    fun mirror(dir: MirrorDirection)
 
     /**
      * 检测某点是否存在, 若存在则返回非零值

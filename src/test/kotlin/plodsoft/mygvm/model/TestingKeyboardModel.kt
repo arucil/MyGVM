@@ -12,21 +12,35 @@ class TestingKeyboardModel(inputStream: InputStream, outputStream: OutputStream)
     override fun getLastKey(wait: Boolean): Int {
         return if (wait) {
             val key = Integer.parseInt(reader.readLine())
-            out.println("[get key $wait: $key]")
+            out.println("[get key wait: $key]")
             key
         } else {
-            0
+            val s = reader.readLine()
+            if (s.isEmpty()) {
+                out.println("[get key no wait: no key]")
+                0
+            } else {
+                val key = Integer.parseInt(s)
+                out.println("[get key no wait: $key]")
+                key
+            }
         }
     }
 
     override fun isKeyPressed(key: Int): Boolean {
-        out.println("[is key pressed]")
+        out.println("[is key pressed: $key]")
         return false
     }
 
     override fun getPressedKey(): Int {
-        out.println("[get pressed key]")
-        return 0
+        val s = reader.readLine()
+        val key = if (s.isEmpty()) {
+            0
+        } else {
+            Integer.parseInt(s)
+        }
+        out.println("[get pressed key: $key]")
+        return key
     }
 
     override fun revalidateKey(key: Int) {

@@ -17,6 +17,8 @@ fun Runtime.test(name: String, inputStream: TestingInputStream, outputStream: By
     while (!runOneStep()) {
     }
 
+    cleanUp()
+
     val actual = String(outputStream.toByteArray(), Charset.forName("gb2312"))
     if (actual != output) {
         System.err.println("""======================Test case [$name] failed:

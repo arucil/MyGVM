@@ -1,5 +1,8 @@
 package plodsoft.mygvm.runtime
 
+/**
+ * 简易随机数生成器
+ */
 class RandomGen(var seed: Int) {
     /**
      * 产生一个随机数

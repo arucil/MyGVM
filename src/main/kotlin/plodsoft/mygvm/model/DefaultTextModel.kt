@@ -20,7 +20,7 @@ class DefaultTextModel(private val backingRam: RamModel, private val startingAdd
 
     override var textMode: TextMode = TextMode.LARGE_FONT
         /**
-         * 清除文本缓冲区并设置字体大小
+         * 设置字体大小
          */
         set(newMode) {
             field = newMode
@@ -37,14 +37,19 @@ class DefaultTextModel(private val backingRam: RamModel, private val startingAdd
                     rows = ScreenModel.HEIGHT / SMALL_FONT_HEIGHT
                 }
             }
-
-            (0 until rows * columns).forEach {
-                backingRam.setByte(startingAddress + it, 0)
-            }
         }
 
     init {
         textMode = TextMode.LARGE_FONT
+    }
+
+    override fun clear() {
+        row = 0
+        column = 0
+
+        (0 until rows * columns).forEach {
+            backingRam.setByte(startingAddress + it, 0)
+        }
     }
 
     /**

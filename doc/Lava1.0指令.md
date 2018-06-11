@@ -65,7 +65,7 @@ printf、sprintf函数调用时最后会加上01 xx，表示参数总个数。�
 | 16 | word16(offset) | 弹栈offset1,把offset+offset1 &#124; 0x00840000压栈 |
 | 17 | word16(addr)   | 弹栈offset,把addr+offset压栈 |
 | 18 | word16(offset) | 弹栈offset1,把栈帧偏移offset+offset1压栈（eastsun的GVM是加上栈帧基址变成指针？） |
-| 19 | word16(offset) | 把栈帧偏移offset压栈（eastsun的GVM是加上栈帧基址变成指针？） |
+| 19 | word16(offset) | 把栈帧偏移offset压栈(用于引用局部数组的地址)（eastsun的GVM是加上栈帧基址变成指针？） |
 | 1a | - | _TEXT压栈 |
 | 1b | - | _GRAPH压栈 |
 | 1c | - | 弹栈int32, 取负数，压栈 |
@@ -196,7 +196,7 @@ printf、sprintf函数调用时最后会加上01 xx，表示参数总个数。�
 | C0 | int ChDir(int path) | 成功返回非0 |
 | C1 | int FileList(int filename) | 列出当前目录的文件供用户选择<br>用户选择的文件名放入filename<br>用户放弃选择则返回0 |
 | C2 | void GetTime(struct Time *t) | 使用GetTime,SetTime,请在程序里加上如下结构定义：<br>struct TIME<br>{<br>int year;<br>char month;<br> char day;<br>char hour;<br>char minute;<br>char second;<br>char week;<br>}; |
-| C3 | void SetTime(struct Time t) |  |
+| C3 | void SetTime(struct Time *t) |  |
 | C4 | long GetWord(int mode) | 等待输入一个宽字符.和getchar()不同的是可以输入中文<br>mode:=0 默认英文模式 =1 默认数字模式 =2 默认汉字模式 =3 保持以前的默认输入状态 |
 | C5 | void Xdraw(int mode) | mode: =0 屏幕左移1个像素 =1 右移1像素 =4 左右反转 =5 上下反转 |
 | C6 | void ReleaseKey(char key) | 把指定的按键状态改为释放状态（即使该键正按下）<br>getchar和Inkey对于持续按下的键只产生一个键值，使用ReleaseKey可以产生连续按键<br>若key>=128则释放所有按键 |
