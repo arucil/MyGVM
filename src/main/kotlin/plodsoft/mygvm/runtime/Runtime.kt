@@ -11,10 +11,15 @@ import plodsoft.mygvm.model.ScreenModel.DrawMode
 import java.util.*
 
 
-class Runtime(private val ramModel: RamModel,
-              private val screenModel: ScreenModel,
-              private val textModel: TextModel,
-              private val keyboardModel: KeyboardModel) {
+class Runtime(val ramModel: RamModel = DefaultRamModel(),
+              val screenModel: ScreenModel = DefaultScreenModel(
+                      RamSegment(ramModel, GRAPHICS_ADDRESS, ScreenModel.BYTE_WIDTH * ScreenModel.HEIGHT),
+                      RamSegment(ramModel, GRAPHICS_BUFFER_ADDRESS, ScreenModel.BYTE_WIDTH * ScreenModel.HEIGHT)),
+              private val textModel: TextModel = DefaultTextModel(
+                      RamSegment(ramModel, TEXT_BUFFER_ADDRESS, DefaultTextModel.SMALL_FONT_ROWS * DefaultTextModel.SMALL_FONT_COLUMNS),
+                      screenModel),
+              val keyboardModel: KeyboardModel = DefaultKeyboardModel()
+        ) {
 
     companion object {
         private const val CODE_INITIAL_OFFSET = 16
@@ -26,11 +31,11 @@ class Runtime(private val ramModel: RamModel,
         private const val STRING_STACK_ADDRESS = 0x1000
         private const val STRING_STACK_CAPACITY = 1024
 
-        private const val TEXT_BUFFER_ADDRESS = 0x0
+        const val TEXT_BUFFER_ADDRESS = 0x0
 
-        private const val GRAPHICS_ADDRESS = 0x100
+        const val GRAPHICS_ADDRESS = 0x100
 
-        private const val GRAPHICS_BUFFER_ADDRESS = 0x900
+        const val GRAPHICS_BUFFER_ADDRESS = 0x900
 
         private const val TRUE = -1
         private const val FALSE = 0

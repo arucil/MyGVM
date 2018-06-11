@@ -1,7 +1,6 @@
 package plodsoft.mygvm.util
 
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
+import java.io.*
 
 /**
  * @throws java.io.IOException
@@ -17,4 +16,12 @@ fun InputStream.readAll(): ByteArray =
             write(buffer, 0, count)
         }
         toByteArray()
+    }
+
+/**
+ * @throws java.io.IOException
+ */
+fun File.readAll(): ByteArray =
+    BufferedInputStream(FileInputStream(this)).use {
+        readAll()
     }

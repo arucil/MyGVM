@@ -13,6 +13,7 @@ interface ScreenModel {
         const val WIDTH = 160
         const val HEIGHT = 80
         const val BITS_PER_PIXEL = 1
+        const val BYTE_WIDTH = WIDTH * BITS_PER_PIXEL / 8
     }
 
     object DrawMode {
@@ -51,7 +52,7 @@ interface ScreenModel {
     /**
      * 清空屏幕
      */
-    fun clear()
+    fun clearGraphics()
 
     /**
      * 清空缓冲区
@@ -85,20 +86,20 @@ interface ScreenModel {
 
     /**
      * 绘制矩形
-     * @param x
-     * @param y
      * @param x1
      * @param y1
+     * @param x2
+     * @param y2
      * @param fill 是否填充
      * @param mode DrawMode, ShapeDrawMode
      */
-    fun drawRect(x: Int, y: Int, x1: Int, y1: Int, fill: Boolean, mode: Int)
+    fun drawRect(x1: Int, y1: Int, x2: Int, y2: Int, fill: Boolean, mode: Int)
 
     /**
      * 画线
      * @param mode DrawMode, ShapeDrawMode
      */
-    fun drawLine(x: Int, y: Int, x1: Int, y1: Int, mode: Int)
+    fun drawLine(x1: Int, y1: Int, x2: Int, y2: Int, mode: Int)
 
     /**
      *　画椭圆

@@ -3,7 +3,7 @@ package plodsoft.mygvm.model
 import java.util.*
 
 class DefaultRamModel : RamModel {
-    private val data = ByteArray(RamModel.SIZE)
+    val data = ByteArray(RamModel.SIZE)
 
     override fun getUint16(address: Int): Int = getUint8(address) or (getUint8(address + 1) shl 8)
 

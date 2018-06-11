@@ -1,6 +1,6 @@
 package plodsoft.mygvm.model
 
-class RamSegment(private val backingRam: RamModel, private val startingAddress: Int, val size: Int) : ReadableMemory, WritableMemory {
+class RamSegment(val backingRam: RamModel, val startingAddress: Int, val size: Int) : ReadableMemory, WritableMemory {
     override fun getByte(address: Int): Byte = backingRam.getByte(address + startingAddress)
 
     override fun setByte(address: Int, value: Byte) {
@@ -9,6 +9,13 @@ class RamSegment(private val backingRam: RamModel, private val startingAddress: 
 
     override fun fill(address: Int, count: Int, value: Byte) {
         backingRam.fill(startingAddress + address, count, value)
+    }
+
+    /**
+     * 把内存段清零
+     */
+    inline fun zero() {
+        fill(0, size, 0)
     }
 
     /**

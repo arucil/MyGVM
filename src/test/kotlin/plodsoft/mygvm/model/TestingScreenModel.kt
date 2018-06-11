@@ -11,7 +11,7 @@ class TestingScreenModel(outputStream: OutputStream) : ScreenModel {
     override var dirtyRegion: Rect = Rect.EMPTY
         get() = TODO("not implemented")
 
-    override fun clear() {
+    override fun clearGraphics() {
         out.println("[clear screen]")
     }
 

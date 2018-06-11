@@ -7,8 +7,14 @@ class DefaultTextModel(private val ram: RamSegment, private val screenModel: Scr
         const val LARGE_FONT_WIDTH = 8
         const val LARGE_FONT_HEIGHT = 16
 
+        const val LARGE_FONT_COLUMNS = ScreenModel.WIDTH / LARGE_FONT_WIDTH
+        const val LARGE_FONT_ROWS = ScreenModel.HEIGHT / LARGE_FONT_HEIGHT
+
         const val SMALL_FONT_WIDTH = 6
         const val SMALL_FONT_HEIGHT = 13
+
+        const val SMALL_FONT_COLUMNS = ScreenModel.WIDTH / SMALL_FONT_WIDTH
+        const val SMALL_FONT_ROWS = ScreenModel.HEIGHT / SMALL_FONT_HEIGHT
     }
 
 
@@ -30,13 +36,13 @@ class DefaultTextModel(private val ram: RamSegment, private val screenModel: Scr
 
             when (newMode) {
                 TextMode.LARGE_FONT -> {
-                    columns = ScreenModel.WIDTH / LARGE_FONT_WIDTH
-                    rows = ScreenModel.HEIGHT / LARGE_FONT_HEIGHT
+                    columns = LARGE_FONT_COLUMNS
+                    rows = LARGE_FONT_ROWS
                     lineHeight = LARGE_FONT_HEIGHT
                 }
                 TextMode.SMALL_FONT -> {
-                    columns = ScreenModel.WIDTH / SMALL_FONT_WIDTH
-                    rows = ScreenModel.HEIGHT / SMALL_FONT_HEIGHT
+                    columns = SMALL_FONT_COLUMNS
+                    rows = SMALL_FONT_ROWS
                     lineHeight = SMALL_FONT_HEIGHT
                 }
             }
@@ -49,7 +55,7 @@ class DefaultTextModel(private val ram: RamSegment, private val screenModel: Scr
     override fun clear() {
         row = 0
         column = 0
-        ram.fill(0, ram.size, 0)
+        ram.zero()
     }
 
     /**
