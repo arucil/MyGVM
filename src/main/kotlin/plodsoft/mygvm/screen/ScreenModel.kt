@@ -17,6 +17,7 @@ interface ScreenModel {
         const val HEIGHT = 80
         const val BITS_PER_PIXEL = 1
         const val BYTE_WIDTH = WIDTH * BITS_PER_PIXEL / 8
+        const val RAM_SIZE = BYTE_WIDTH * HEIGHT
     }
 
     object DrawMode {
@@ -76,6 +77,8 @@ interface ScreenModel {
 
     /**
      * 从屏幕或缓冲区读取图形数据保存到内存
+     *
+     * x, y, width和height参数的范围0~0xffff
      * @param isFromGraphics 是否从屏幕读取图形数据. 若为false则从缓冲区读取
      */
     fun saveData(x: Int, y: Int, width: Int, height: Int, isFromGraphics: Boolean, mem: WritableMemory, addr: Int)
@@ -108,7 +111,7 @@ interface ScreenModel {
      *　画椭圆
      * @param mode DrawMode, ShapeDrawMode
      */
-    fun drawOval(x: Int, y: Int, rx: Int, ry: Int, fill: Boolean, mode: Int)
+    fun drawOval(cx: Int, cy: Int, a: Int, b: Int, fill: Boolean, mode: Int)
 
     /**
      * 画点
@@ -125,7 +128,7 @@ interface ScreenModel {
     }
 
     /**
-     * 屏幕滚动一个像素
+     * 缓冲区滚动一个像素
      */
     fun scroll(dir: ScrollDirection)
 
@@ -136,7 +139,7 @@ interface ScreenModel {
     }
 
     /**
-     * 屏幕翻转
+     * 缓冲区翻转
      */
     fun mirror(dir: MirrorDirection)
 

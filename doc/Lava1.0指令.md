@@ -198,7 +198,7 @@ printf、sprintf函数调用时最后会加上01 xx，表示参数总个数。�
 | C2 | void GetTime(struct Time *t) | 使用GetTime,SetTime,请在程序里加上如下结构定义：<br>struct TIME<br>{<br>int year;<br>char month;<br> char day;<br>char hour;<br>char minute;<br>char second;<br>char week;<br>}; |
 | C3 | void SetTime(struct Time *t) |  |
 | C4 | long GetWord(int mode) | 等待输入一个宽字符.和getchar()不同的是可以输入中文<br>mode:=0 默认英文模式 =1 默认数字模式 =2 默认汉字模式 =3 保持以前的默认输入状态 |
-| C5 | void Xdraw(int mode) | mode: =0 屏幕左移1个像素 =1 右移1像素 =4 左右反转 =5 上下反转 |
+| C5 | void XDraw(int mode) | 缓冲区全屏特效<br>mode: =0 缓冲区左移1个像素 =1 右移1像素 =4 左右反转 =5 上下反转 |
 | C6 | void ReleaseKey(char key) | 把指定的按键状态改为释放状态（即使该键正按下）<br>getchar和Inkey对于持续按下的键只产生一个键值，使用ReleaseKey可以产生连续按键<br>若key>=128则释放所有按键 |
 | C7 | void GetBlock(int x,int y,int width,int height,int type,int data) | type:=0 从缓冲区复制图形 =0x40 从屏幕复制<br>x和width忽略低3位 |
 | C8 | int Sin(int deg) | deg是角度，取0~32767之间, 返回-1024~1024 |

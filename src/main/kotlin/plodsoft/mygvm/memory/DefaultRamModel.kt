@@ -31,14 +31,14 @@ class DefaultRamModel : RamModel {
         setUint8(address + 3, value ushr 24)
     }
 
-    override fun getByte(address: Int): Byte = data[address]
+    override fun getByte(offset: Int): Byte = data[offset]
 
-    override fun setByte(address: Int, value: Byte) {
-        data[address] = value
+    override fun setByte(offset: Int, value: Byte) {
+        data[offset] = value
     }
 
-    override fun fill(address: Int, count: Int, value: Byte) {
-        Arrays.fill(data, address, address + count, value)
+    override fun fill(offset: Int, count: Int, value: Byte) {
+        Arrays.fill(data, offset, offset + count, value)
     }
 
     override fun copy(destAddress: Int, srcAddress: Int, count: Int) {

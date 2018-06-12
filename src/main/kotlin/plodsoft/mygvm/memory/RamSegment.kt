@@ -1,14 +1,14 @@
 package plodsoft.mygvm.memory
 
 class RamSegment(val backingRam: RamModel, val startingAddress: Int, val size: Int) : ReadableMemory, WritableMemory {
-    override fun getByte(address: Int): Byte = backingRam.getByte(address + startingAddress)
+    override fun getByte(offset: Int): Byte = backingRam.getByte(offset + startingAddress)
 
-    override fun setByte(address: Int, value: Byte) {
-        backingRam.setByte(address + startingAddress, value)
+    override fun setByte(offset: Int, value: Byte) {
+        backingRam.setByte(offset + startingAddress, value)
     }
 
-    override fun fill(address: Int, count: Int, value: Byte) {
-        backingRam.fill(startingAddress + address, count, value)
+    override fun fill(offset: Int, count: Int, value: Byte) {
+        backingRam.fill(startingAddress + offset, count, value)
     }
 
     /**
@@ -21,7 +21,7 @@ class RamSegment(val backingRam: RamModel, val startingAddress: Int, val size: I
     /**
      * 两块内存区域可以重叠
      */
-    fun copy(destAddr: Int, srcAddr: Int, count: Int) {
-        backingRam.copy(destAddr + startingAddress, srcAddr + startingAddress, count)
+    fun copy(destOffset: Int, srcOffset: Int, count: Int) {
+        backingRam.copy(destOffset + startingAddress, srcOffset + startingAddress, count)
     }
 }

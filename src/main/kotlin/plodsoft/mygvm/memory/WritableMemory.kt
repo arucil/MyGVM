@@ -1,10 +1,10 @@
 package plodsoft.mygvm.memory
 
 interface WritableMemory {
-    fun setByte(address: Int, value: Byte)
+    fun setByte(offset: Int, value: Byte)
 
-    fun fill(address: Int, count: Int, value: Byte) {
-        for (i in address until (address + count)) {
+    fun fill(offset: Int, count: Int, value: Byte) {
+        for (i in offset until (offset + count)) {
             setByte(i, value)
         }
     }

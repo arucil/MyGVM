@@ -21,8 +21,8 @@ import java.util.*
 
 class Runtime(val ramModel: RamModel = DefaultRamModel(),
               val screenModel: ScreenModel = DefaultScreenModel(
-                      RamSegment(ramModel, GRAPHICS_ADDRESS, ScreenModel.BYTE_WIDTH * ScreenModel.HEIGHT),
-                      RamSegment(ramModel, GRAPHICS_BUFFER_ADDRESS, ScreenModel.BYTE_WIDTH * ScreenModel.HEIGHT)),
+                      RamSegment(ramModel, GRAPHICS_ADDRESS, ScreenModel.RAM_SIZE),
+                      RamSegment(ramModel, GRAPHICS_BUFFER_ADDRESS, ScreenModel.RAM_SIZE)),
               private val textModel: TextModel = DefaultTextModel(
                       RamSegment(ramModel, TEXT_BUFFER_ADDRESS, DefaultTextModel.SMALL_FONT_ROWS * DefaultTextModel.SMALL_FONT_COLUMNS),
                       screenModel),
@@ -788,10 +788,10 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
             // GetBlock
             0xc7 -> {
                 dataStack.shrink(6)
-                val x = dataStack.peek(0)
-                val y = dataStack.peek(1)
-                val width = dataStack.peek(2)
-                val height = dataStack.peek(3)
+                val x = dataStack.peek(0) and 0xffff
+                val y = dataStack.peek(1) and 0xffff
+                val width = dataStack.peek(2) and 0xffff
+                val height = dataStack.peek(3) and 0xffff
                 val mode = dataStack.peek(4)
                 val addr = dataStack.peek(5)
 
