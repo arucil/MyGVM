@@ -10,7 +10,7 @@ import plodsoft.mygvm.text.TextModel
 import plodsoft.mygvm.util.Rect
 import kotlin.math.absoluteValue
 
-class DefaultScreenModel(private val graphicsRam: RamSegment, private val bufferRam: RamSegment) : ScreenModel {
+class DefaultScreenModel(val graphicsRam: RamSegment, private val bufferRam: RamSegment) : ScreenModel {
     companion object {
         private val BIT_MASK = intArrayOf(0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01)
 
@@ -482,7 +482,7 @@ class DefaultScreenModel(private val graphicsRam: RamSegment, private val buffer
             ScreenModel.ScrollDirection.Right -> {
                 for (offset in 0 until ScreenModel.RAM_SIZE step ScreenModel.BYTE_WIDTH) {
                     var bit = false
-                    for (i in 0 until (ScreenModel.BYTE_WIDTH - 1)) {
+                    for (i in 0 until ScreenModel.BYTE_WIDTH) {
                         val b = activeRam.getByte(offset + i).toInt()
                         if (bit) {
                             activeRam.setByte(offset + i, (b ushr 1 or 0x80).toByte())
@@ -500,7 +500,7 @@ class DefaultScreenModel(private val graphicsRam: RamSegment, private val buffer
         when (dir) {
             ScreenModel.MirrorDirection.Horizontal -> {
                 for (offset in 0 until ScreenModel.RAM_SIZE step ScreenModel.BYTE_WIDTH) {
-                    for (i in 0 until (ScreenModel.BYTE_WIDTH - 1)) {
+                    for (i in 0 until (ScreenModel.BYTE_WIDTH / 2)) {
                         val tmp = activeRam.getByte(offset + i)
                         activeRam.setByte(offset + i, ByteMirrorTable[activeRam.getByte(offset + (ScreenModel.BYTE_WIDTH - 1 - i)).toInt() and 0xff])
                         activeRam.setByte(offset + (ScreenModel.BYTE_WIDTH - 1 - i), ByteMirrorTable[tmp.toInt() and 0xff])
@@ -511,7 +511,7 @@ class DefaultScreenModel(private val graphicsRam: RamSegment, private val buffer
                 for (y in 0 until (ScreenModel.HEIGHT / 2)) {
                     val offsetTop = y * ScreenModel.BYTE_WIDTH
                     val offsetBottom = (ScreenModel.HEIGHT - 1 - y) * ScreenModel.BYTE_WIDTH
-                    for (x in 0 until ScreenModel.WIDTH) {
+                    for (x in 0 until ScreenModel.BYTE_WIDTH) {
                         val tmp = activeRam.getByte(offsetTop + x)
                         activeRam.setByte(offsetTop + x, activeRam.getByte(offsetBottom + x))
                         activeRam.setByte(offsetBottom + x, tmp)
