@@ -25,3 +25,4 @@ class RamSegment(val backingRam: RamModel, val startingAddress: Int, val size: I
         backingRam.copy(destOffset + startingAddress, srcOffset + startingAddress, count)
     }
 }
+

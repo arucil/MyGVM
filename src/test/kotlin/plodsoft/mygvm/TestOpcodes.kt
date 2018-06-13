@@ -355,18 +355,18 @@ fun testRuntime() {
             0x01, 0x32, 0x8D,
             0x40),
             "",
-            """[write block 10,20,30,40,0x1000,0x41]
+            """[write block 10, 20, 30, 40, 0x1000, screen, copy, no-mirror, no-invert]
               |[refresh]
-              |[text out 12,34,Hello,SMALL_FONT,0x81]
-              |[draw rect 11,22,33,44,true,0xc2]
-              |[draw rect 12,34,56,78,false,0xc1]
+              |[text out 12, 34, Hello, SMALL_FONT, buffer, copy, no-mirror, no-invert]
+              |[draw rect 11, 22, 33, 44, fill, buffer, invert]
+              |[draw rect 12, 34, 56, 78, no-fill, buffer, normal]
               |[clear buffer]
               |[locate to (x: 6, y: 5)]
-              |[draw point 52,61,0x42]
-              |[draw line 34,36,48,17,0x2]
-              |[draw rect 36,40,53,79,true,0x41]
-              |[draw oval 80,40,12,12,true,0x42]
-              |[draw oval 80,41,20,15,false,0x41]
+              |[draw point 52, 61, screen, invert]
+              |[draw line 34, 36, 48, 17, buffer, invert]
+              |[draw rect 36, 40, 53, 79, fill, screen, normal]
+              |[draw oval 80, 40, 12, 12, fill, screen, invert]
+              |[draw oval 80, 41, 20, 15, no-fill, screen, normal]
               |""".trimMargin())
 
     /**
@@ -391,8 +391,8 @@ fun testRuntime() {
             "16\n\n",
             """[get key no wait: 16]
               |[get key no wait: no key]
-              |[test point 10,20]
-              |[test point 200,0]
+              |[test point 10, 20, screen]
+              |[test point 200, 0, screen]
               |[add bytes (12345678,12345678,5887,29448,20772,16,0,0,1)]
               |[render text to screen: 0b0]
               |""".trimMargin())
@@ -548,13 +548,13 @@ fun testRuntime() {
             """[get key wait: 97]
               |[add bytes (97)]
               |[render text to screen: 0b0]
-              |[scroll Left]
-              |[scroll Right]
-              |[mirror Horizontal]
-              |[mirror Vertical]
+              |[scroll left, buffer]
+              |[scroll right, buffer]
+              |[mirror horizontal, buffer]
+              |[mirror vertical, buffer]
               |[revalidate key 15]
               |[revalidate all keys]
-              |[get block 10,21,99,54,true,0xe000]
+              |[get block 10, 21, 99, 54, screen, 0xe000]
               |[add bytes (0,512,1024,0,-1024,0)]
               |[render text to screen: 0b0]
               |[add bytes (1024,887,0,-1024,0,1024)]

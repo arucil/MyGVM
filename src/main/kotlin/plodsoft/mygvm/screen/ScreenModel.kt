@@ -15,37 +15,22 @@ interface ScreenModel {
     companion object {
         const val WIDTH = 160
         const val HEIGHT = 80
-        const val BITS_PER_PIXEL = 1
-        const val BYTE_WIDTH = WIDTH * BITS_PER_PIXEL / 8
+        const val BYTE_WIDTH = WIDTH / 8
         const val RAM_SIZE = BYTE_WIDTH * HEIGHT
-    }
-
-    object DrawMode {
-        const val GRAPHICS_DRAW_MASK = 0x40 // 直接在屏幕上绘图
     }
 
     /**
      * 用于drawData, drawString
      */
-    object DataDrawMode {
-        const val HORIZONTAL_MIRROR_MASK = 0x20
-
-        const val DRAW_MODE_MASK = 0x7
-        const val COPY = 1
-        const val NOT = 2
-        const val OR = 3
-        const val AND = 4
-        const val XOR = 5
+    enum class DataDrawMode {
+        Copy, Not, Or, And, Xor
     }
 
     /**
      * 用于形状绘制(point, line, rectangle, oval)
      */
-    object ShapeDrawMode {
-        const val DRAW_MODE_MASK = 3
-        const val CLEAR = 0
-        const val NORMAL = 1
-        const val INVERT = 2
+    enum class ShapeDrawMode {
+        Clear, Normal, Invert
     }
 
     /**
@@ -53,15 +38,21 @@ interface ScreenModel {
      */
     val dirtyRegion: Rect
 
-    /**
-     * 清空屏幕
-     */
-    fun clearGraphics()
+
+    enum class Target {
+        Graphics, // 在屏幕绘图
+        Buffer    // 在缓冲区绘图
+    }
 
     /**
-     * 清空缓冲区
+     * 后续的绘图操作的目标: 直接在屏幕绘图或在缓冲区绘图
      */
-    fun clearBuffer()
+    var target: Target
+
+    /**
+     * 清空屏幕或缓冲区
+     */
+    fun clear()
 
     /**
      * 从内存读取图形数据进行绘制
@@ -71,24 +62,29 @@ interface ScreenModel {
      * @param height
      * @param mem
      * @param addr
-     * @param mode DrawMode, DataDrawMode
+     * @param mode DataDrawMode
+     * @param horizontalMirrored 是否左右反转
+     * @param inverse 是否反显
      */
-    fun drawData(x: Int, y: Int, width: Int, height: Int, mem: ReadableMemory, addr: Int, mode: Int)
+    fun drawData(x: Int, y: Int, width: Int, height: Int, mem: ReadableMemory, addr: Int,
+                 mode: DataDrawMode, horizontalMirrored: Boolean, inverse: Boolean)
 
     /**
      * 从屏幕或缓冲区读取图形数据保存到内存
      *
      * x, y, width和height参数的范围0~0xffff
-     * @param isFromGraphics 是否从屏幕读取图形数据. 若为false则从缓冲区读取
      */
-    fun saveData(x: Int, y: Int, width: Int, height: Int, isFromGraphics: Boolean, mem: WritableMemory, addr: Int)
+    fun saveData(x: Int, y: Int, width: Int, height: Int, mem: WritableMemory, addr: Int)
 
     /**
      * 从mem的addr地址开始读取len个字节文本并绘制
      * @param font 大字体/小字体
-     * @param mode DrawMode, DataDrawMode
+     * @param mode DataDrawMode
+     * @param horizontalMirrored 是否左右反转
+     * @param inverse 是否反显
      */
-    fun drawString(x: Int, y: Int, mem: ReadableMemory, addr: Int, len: Int, font: TextModel.TextMode, mode: Int)
+    fun drawString(x: Int, y: Int, mem: ReadableMemory, addr: Int, len: Int, font: TextModel.TextMode,
+                   mode: DataDrawMode, horizontalMirrored: Boolean, inverse: Boolean)
 
     /**
      * 绘制矩形
@@ -97,29 +93,29 @@ interface ScreenModel {
      * @param x2
      * @param y2
      * @param fill 是否填充
-     * @param mode DrawMode, ShapeDrawMode
+     * @param mode ShapeDrawMode
      */
-    fun drawRect(x1: Int, y1: Int, x2: Int, y2: Int, fill: Boolean, mode: Int)
+    fun drawRect(x1: Int, y1: Int, x2: Int, y2: Int, fill: Boolean, mode: ShapeDrawMode)
 
     /**
      * 画线
-     * @param mode DrawMode, ShapeDrawMode
+     * @param mode ShapeDrawMode
      */
-    fun drawLine(x1: Int, y1: Int, x2: Int, y2: Int, mode: Int)
+    fun drawLine(x1: Int, y1: Int, x2: Int, y2: Int, mode: ShapeDrawMode)
 
     /**
      *　画椭圆
-     * @param mode DrawMode, ShapeDrawMode
+     * @param mode ShapeDrawMode
      */
-    fun drawOval(cx: Int, cy: Int, a: Int, b: Int, fill: Boolean, mode: Int)
+    fun drawOval(cx: Int, cy: Int, a: Int, b: Int, fill: Boolean, mode: ShapeDrawMode)
 
     /**
      * 画点
      * @param x
      * @param y
-     * @param mode DrawMode, ShapeDrawMode
+     * @param mode ShapeDrawMode
      */
-    fun drawPoint(x: Int, y: Int, mode: Int)
+    fun drawPoint(x: Int, y: Int, mode: ShapeDrawMode)
 
 
     enum class ScrollDirection {

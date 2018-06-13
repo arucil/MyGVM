@@ -22,9 +22,9 @@ fun Runtime.test(name: String, inputStream: TestingInputStream, outputStream: By
     val actual = String(outputStream.toByteArray(), Charset.forName("gb2312"))
     if (actual != output) {
         System.err.println("""======================Test case [$name] failed:
-            |expected output:
+            |>>>>>>>>>>>>>expected output:
             |{$output}
-            |actual output:
+            |>>>>>>>>>>>>>actual output:
             |{$actual}
             |
         """.trimMargin())

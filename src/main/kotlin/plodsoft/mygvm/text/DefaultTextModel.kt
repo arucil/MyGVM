@@ -8,15 +8,17 @@ class DefaultTextModel(private val ram: RamSegment, private val screenModel: Scr
     companion object {
         const val LARGE_FONT_WIDTH = 8
         const val LARGE_FONT_HEIGHT = 16
+        const val LARGE_FONT_ROW_HEIGHT = 16
 
         const val LARGE_FONT_COLUMNS = ScreenModel.WIDTH / LARGE_FONT_WIDTH
-        const val LARGE_FONT_ROWS = ScreenModel.HEIGHT / LARGE_FONT_HEIGHT
+        const val LARGE_FONT_ROWS = ScreenModel.HEIGHT / LARGE_FONT_ROW_HEIGHT
 
         const val SMALL_FONT_WIDTH = 6
-        const val SMALL_FONT_HEIGHT = 13
+        const val SMALL_FONT_HEIGHT = 12
+        const val SMALL_FONT_ROW_HEIGHT = 13
 
         const val SMALL_FONT_COLUMNS = ScreenModel.WIDTH / SMALL_FONT_WIDTH
-        const val SMALL_FONT_ROWS = ScreenModel.HEIGHT / SMALL_FONT_HEIGHT
+        const val SMALL_FONT_ROWS = ScreenModel.HEIGHT / SMALL_FONT_ROW_HEIGHT
     }
 
 
@@ -24,7 +26,7 @@ class DefaultTextModel(private val ram: RamSegment, private val screenModel: Scr
     private var row: Int = 0
     private var rows: Int = -1
     private var columns: Int = -1
-    private var lineHeight: Int = 0
+    private var rowHeight: Int = 0
 
 
     override var textMode: TextMode = TextMode.LARGE_FONT
@@ -40,12 +42,12 @@ class DefaultTextModel(private val ram: RamSegment, private val screenModel: Scr
                 TextMode.LARGE_FONT -> {
                     columns = LARGE_FONT_COLUMNS
                     rows = LARGE_FONT_ROWS
-                    lineHeight = LARGE_FONT_HEIGHT
+                    rowHeight = LARGE_FONT_ROW_HEIGHT
                 }
                 TextMode.SMALL_FONT -> {
                     columns = SMALL_FONT_COLUMNS
                     rows = SMALL_FONT_ROWS
-                    lineHeight = SMALL_FONT_HEIGHT
+                    rowHeight = SMALL_FONT_ROW_HEIGHT
                 }
             }
         }
@@ -139,30 +141,30 @@ class DefaultTextModel(private val ram: RamSegment, private val screenModel: Scr
      * @param renderRows 从bit7-bit0表示从上到下的每一行文本是否刷新，如果都为0则全部刷新
      */
     override fun renderToScreen(renderRows: Int) {
+        screenModel.target = ScreenModel.Target.Graphics
+
         if (textMode == TextMode.SMALL_FONT) {
             // 清除边界
-            val mode = ScreenModel.ShapeDrawMode.CLEAR or ScreenModel.DrawMode.GRAPHICS_DRAW_MASK
-            screenModel.drawLine(0, 0, ScreenModel.WIDTH - 1, 0, mode)
-            screenModel.drawLine(0, ScreenModel.HEIGHT - 1, ScreenModel.WIDTH - 1, ScreenModel.HEIGHT - 1, mode)
-            screenModel.drawRect(0, 0, 1, ScreenModel.HEIGHT - 1, true, mode)
-            screenModel.drawRect(ScreenModel.WIDTH - 2, 0, ScreenModel.WIDTH - 1, ScreenModel.HEIGHT - 1, true, mode)
+            screenModel.drawLine(0, 0, ScreenModel.WIDTH - 1, 0, ScreenModel.ShapeDrawMode.Clear)
+            screenModel.drawLine(0, ScreenModel.HEIGHT - 1, ScreenModel.WIDTH - 1, ScreenModel.HEIGHT - 1, ScreenModel.ShapeDrawMode.Clear)
+            screenModel.drawRect(0, 0, 1, ScreenModel.HEIGHT - 1, true, ScreenModel.ShapeDrawMode.Clear)
+            screenModel.drawRect(ScreenModel.WIDTH - 2, 0, ScreenModel.WIDTH - 1, ScreenModel.HEIGHT - 1, true, ScreenModel.ShapeDrawMode.Clear)
 
             // 清除每行文本的空隙
             for (y in (SMALL_FONT_HEIGHT + 1) until ScreenModel.HEIGHT step SMALL_FONT_HEIGHT) {
-                screenModel.drawLine(0, y, ScreenModel.WIDTH - 1, y, mode)
+                screenModel.drawLine(0, y, ScreenModel.WIDTH - 1, y, ScreenModel.ShapeDrawMode.Clear)
             }
         }
 
         var mask = 0x100
         val y0 = if (textMode == TextMode.LARGE_FONT) 0 else 1
         val x0 = if (textMode == TextMode.LARGE_FONT) 0 else 2
-        val mode = ScreenModel.DataDrawMode.COPY or ScreenModel.DrawMode.GRAPHICS_DRAW_MASK
         for (i in 0 until rows) {
             mask = mask ushr 1
             if ((mask and renderRows) != 0) {
                 continue
             }
-            screenModel.drawString(x0, y0 + i * lineHeight, ram, i * columns, columns, textMode, mode)
+            screenModel.drawString(x0, y0 + i * rowHeight, ram, i * columns, columns, textMode, ScreenModel.DataDrawMode.Copy, false, false)
         }
     }
 }

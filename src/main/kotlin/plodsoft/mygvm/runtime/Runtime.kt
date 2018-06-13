@@ -13,21 +13,15 @@ import java.io.InputStream
 import kotlin.experimental.xor
 import kotlin.math.absoluteValue
 import kotlin.math.max
-import plodsoft.mygvm.screen.ScreenModel.DrawMode
 import plodsoft.mygvm.text.DefaultTextModel
 import plodsoft.mygvm.text.TextModel
 import java.util.*
 
 
-class Runtime(val ramModel: RamModel = DefaultRamModel(),
-              val screenModel: ScreenModel = DefaultScreenModel(
-                      RamSegment(ramModel, GRAPHICS_ADDRESS, ScreenModel.RAM_SIZE),
-                      RamSegment(ramModel, GRAPHICS_BUFFER_ADDRESS, ScreenModel.RAM_SIZE)),
-              private val textModel: TextModel = DefaultTextModel(
-                      RamSegment(ramModel, TEXT_BUFFER_ADDRESS, DefaultTextModel.SMALL_FONT_ROWS * DefaultTextModel.SMALL_FONT_COLUMNS),
-                      screenModel),
-              val keyboardModel: KeyboardModel = DefaultKeyboardModel()
-        ) {
+class Runtime(val ramModel: RamModel,
+              val screenModel: ScreenModel,
+              private val textModel: TextModel,
+              val keyboardModel: KeyboardModel) {
 
     companion object {
         private const val CODE_INITIAL_OFFSET = 16
@@ -49,6 +43,20 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
         private const val FALSE = 0
 
 
+        fun create(): Runtime {
+            val ramModel = DefaultRamModel()
+            val screenModel = DefaultScreenModel(
+                    RamSegment(ramModel, GRAPHICS_ADDRESS, ScreenModel.RAM_SIZE),
+                    RamSegment(ramModel, GRAPHICS_BUFFER_ADDRESS, ScreenModel.RAM_SIZE))
+            val textModel = DefaultTextModel(
+                    RamSegment(ramModel, TEXT_BUFFER_ADDRESS, DefaultTextModel.SMALL_FONT_ROWS * DefaultTextModel.SMALL_FONT_COLUMNS),
+                    screenModel)
+            val keyboardModel = DefaultKeyboardModel()
+
+            return Runtime(ramModel, screenModel, textModel, keyboardModel)
+        }
+
+
         /**
          * 获取从addr开始的以\0结尾的字符串的结尾(\0)地址
          */
@@ -59,6 +67,30 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 ++addr1
             }
             return addr1
+        }
+
+        /**
+         * 把 int 转换为 ShapeDrawMode, 然后调用action. 若 int 不是合法的 mode 值, 则不调用 action
+         */
+        private inline fun Int.applyShapeDrawMode(action: (ScreenModel.ShapeDrawMode) -> Unit) {
+            when (this and 0x3) {
+                0 -> action(ScreenModel.ShapeDrawMode.Clear)
+                1 -> action(ScreenModel.ShapeDrawMode.Normal)
+                2 -> action(ScreenModel.ShapeDrawMode.Invert)
+            }
+        }
+
+        /**
+         * 把 int 转换为 DataDrawMode, 然后调用action. 若 int 不是合法的 mode 值, 则不调用 action
+         */
+        private inline fun Int.applyDataDrawMode(action: (ScreenModel.DataDrawMode) -> Unit) {
+            when (this and 0x7) {
+                1 -> action(ScreenModel.DataDrawMode.Copy)
+                2 -> action(ScreenModel.DataDrawMode.Not)
+                3 -> action(ScreenModel.DataDrawMode.Or)
+                4 -> action(ScreenModel.DataDrawMode.And)
+                5 -> action(ScreenModel.DataDrawMode.Xor)
+            }
         }
     }
 
@@ -401,7 +433,10 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 val mode = dataStack.peek(4)
                 val addr = dataStack.peek(5) and 0xffff
 
-                screenModel.drawData(x, y, width, height, ramModel, addr, mode)
+                screenModel.target = if ((mode and 0x40) != 0) ScreenModel.Target.Graphics else ScreenModel.Target.Buffer
+                mode.applyDataDrawMode {
+                    screenModel.drawData(x, y, width, height, ramModel, addr, it, (mode and 0x20) != 0, (mode and 0x8) != 0)
+                }
             }
 
             // Refresh
@@ -415,12 +450,13 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 val addr = dataStack.peek(2)
                 val mode = dataStack.peek(3)
 
-                var addr1 = ramModel.getStringEnd(addr)
+                val addr1 = ramModel.getStringEnd(addr)
 
-                screenModel.drawString(x, y, ramModel, addr, addr1 - addr,
-                        if ((mode and 0x80) != 0) TextModel.TextMode.SMALL_FONT
-                        else TextModel.TextMode.LARGE_FONT,
-                        mode)
+                screenModel.target = if ((mode and 0x40) != 0) ScreenModel.Target.Graphics else ScreenModel.Target.Buffer
+                mode.applyDataDrawMode {
+                    val font = if ((mode and 0x80) != 0) TextModel.TextMode.SMALL_FONT else TextModel.TextMode.LARGE_FONT
+                    screenModel.drawString(x, y, ramModel, addr, addr1 - addr, font, it, (mode and 0x20) != 0, (mode and 0x8) != 0)
+                }
             }
 
             // Block
@@ -430,8 +466,12 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 val y = dataStack.peek(1)
                 val x1 = dataStack.peek(2)
                 val y1 = dataStack.peek(3)
-                val mode = dataStack.peek(4) xor DrawMode.GRAPHICS_DRAW_MASK
-                screenModel.drawRect(x, y, x1, y1, true, mode)
+                val mode = dataStack.peek(4)
+
+                screenModel.target = ScreenModel.Target.Buffer
+                mode.applyShapeDrawMode {
+                    screenModel.drawRect(x, y, x1, y1, true, it)
+                }
             }
 
             // Rectangle
@@ -441,15 +481,22 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 val y = dataStack.peek(1)
                 val x1 = dataStack.peek(2)
                 val y1 = dataStack.peek(3)
-                val mode = dataStack.peek(4) xor DrawMode.GRAPHICS_DRAW_MASK
-                screenModel.drawRect(x, y, x1, y1, false, mode)
+                val mode = dataStack.peek(4)
+
+                screenModel.target = ScreenModel.Target.Buffer
+                mode.applyShapeDrawMode {
+                    screenModel.drawRect(x, y, x1, y1, false, it)
+                }
             }
 
             // exit
             0x8d -> isOver = true
 
             // ClearScreen
-            0x8e -> screenModel.clearBuffer()
+            0x8e -> {
+                screenModel.target = ScreenModel.Target.Buffer
+                screenModel.clear()
+            }
 
             // abs
             0x8f -> dataStack.push(dataStack.pop().absoluteValue)
@@ -476,8 +523,12 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 dataStack.shrink(3)
                 val x = dataStack.peek(0)
                 val y = dataStack.peek(1)
-                val mode = dataStack.peek(2) xor DrawMode.GRAPHICS_DRAW_MASK
-                screenModel.drawPoint(x, y, mode)
+                val mode = dataStack.peek(2)
+
+                screenModel.target = if ((mode and 0x40) != 0) ScreenModel.Target.Buffer else ScreenModel.Target.Graphics
+                mode.applyShapeDrawMode {
+                    screenModel.drawPoint(x, y, it)
+                }
             }
 
             // GetPoint
@@ -485,6 +536,8 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 dataStack.shrink(2)
                 val x = dataStack.peek(0)
                 val y = dataStack.peek(1)
+
+                screenModel.target = ScreenModel.Target.Graphics
                 dataStack.push(screenModel.testPoint(x, y))
             }
 
@@ -495,8 +548,12 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 val y = dataStack.peek(1)
                 val x1 = dataStack.peek(2)
                 val y1 = dataStack.peek(3)
-                val mode = dataStack.peek(4) xor DrawMode.GRAPHICS_DRAW_MASK
-                screenModel.drawLine(x, y, x1, y1, mode)
+                val mode = dataStack.peek(4)
+
+                screenModel.target = if ((mode and 0x40) != 0) ScreenModel.Target.Buffer else ScreenModel.Target.Graphics
+                mode.applyShapeDrawMode {
+                    screenModel.drawLine(x, y, x1, y1, it)
+                }
             }
 
             // Box
@@ -507,8 +564,12 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 val x1 = dataStack.peek(2)
                 val y1 = dataStack.peek(3)
                 val fill = dataStack.peek(4) != 0
-                val mode = dataStack.peek(5) xor DrawMode.GRAPHICS_DRAW_MASK
-                screenModel.drawRect(x, y, x1, y1, fill, mode)
+                val mode = dataStack.peek(5)
+
+                screenModel.target = if ((mode and 0x40) != 0) ScreenModel.Target.Buffer else ScreenModel.Target.Graphics
+                mode.applyShapeDrawMode {
+                    screenModel.drawRect(x, y, x1, y1, fill, it)
+                }
             }
 
             // Circle
@@ -518,8 +579,12 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 val y = dataStack.peek(1)
                 val r = dataStack.peek(2)
                 val fill = dataStack.peek(3) != 0
-                val mode = dataStack.peek(4) xor DrawMode.GRAPHICS_DRAW_MASK
-                screenModel.drawOval(x, y, r, r, fill, mode)
+                val mode = dataStack.peek(4)
+
+                screenModel.target = if ((mode and 0x40) != 0) ScreenModel.Target.Buffer else ScreenModel.Target.Graphics
+                mode.applyShapeDrawMode {
+                    screenModel.drawOval(x, y, r, r, fill, it)
+                }
             }
 
             // Ellipse
@@ -530,8 +595,12 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 val rx = dataStack.peek(2)
                 val ry = dataStack.peek(3)
                 val fill = dataStack.peek(4) != 0
-                val mode = dataStack.peek(5) xor DrawMode.GRAPHICS_DRAW_MASK
-                screenModel.drawOval(x, y, rx, ry, fill, mode)
+                val mode = dataStack.peek(5)
+
+                screenModel.target = if ((mode and 0x40) != 0) ScreenModel.Target.Buffer else ScreenModel.Target.Graphics
+                mode.applyShapeDrawMode {
+                    screenModel.drawOval(x, y, rx, ry, fill, it)
+                }
             }
 
             // Beep
@@ -767,6 +836,7 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
 
             // XDraw
             0xc5 -> {
+                screenModel.target = ScreenModel.Target.Buffer
                 when (dataStack.pop()) {
                     0 -> screenModel.scroll(ScreenModel.ScrollDirection.Left)
                     1 -> screenModel.scroll(ScreenModel.ScrollDirection.Right)
@@ -795,7 +865,8 @@ class Runtime(val ramModel: RamModel = DefaultRamModel(),
                 val mode = dataStack.peek(4)
                 val addr = dataStack.peek(5)
 
-                screenModel.saveData(x, y, width, height, (mode and DrawMode.GRAPHICS_DRAW_MASK) != 0, ramModel, addr)
+                screenModel.target = if ((mode and 0x40) != 0) ScreenModel.Target.Graphics else ScreenModel.Target.Buffer
+                screenModel.saveData(x, y, width, height, ramModel, addr)
             }
 
             // Sin
