@@ -16,10 +16,12 @@ class DefaultKeyboardModel : KeyboardModel {
      * @param key lava键值
      */
     fun keyPressed(key: Int) {
-        lastKey = key
-        keyStates[key] = true
+        synchronized(lock) {
+            lastKey = key
+            keyStates[key] = true
 
-        lock.notify()
+            lock.notify()
+        }
     }
 
     /**
@@ -28,53 +30,64 @@ class DefaultKeyboardModel : KeyboardModel {
      * @param key lava键值
      */
     fun keyReleased(key: Int) {
-        if (lastKey == key) {
-            lastKey = 0
-        }
+        synchronized(lock) {
+            if (lastKey == key) {
+                lastKey = 0
+            }
 
-        keyStates[key] = false
+            keyStates[key] = false
+        }
     }
 
     override fun getLastKey(wait: Boolean): Int {
-        if (wait) {
-            while (true) {
-                val key = lastKey
-                if (key != 0) {
-                    lastKey = 0
-                    return key
-                } else {
-                    lock.wait()
+        synchronized(lock) {
+            if (wait) {
+                while (true) {
+                    if (lastKey != 0) {
+                        return lastKey.also { lastKey = 0 }
+                    } else {
+                        lock.wait()
+                    }
                 }
+            } else {
+                return lastKey.also { lastKey = 0 }
             }
-        } else {
-            return lastKey.also { lastKey = 0 }
         }
+        throw IllegalStateException("unreachable")
     }
 
     override fun isKeyPressed(key: Int): Boolean {
-        return keyStates[key]
+        synchronized(lock) {
+            return keyStates[key]
+        }
     }
 
     override fun getPressedKey(): Int {
-        for (i in 1 until keyStates.size) {
-            if (keyStates[i]) {
-                return i
+        synchronized(lock) {
+            for (i in 1 until keyStates.size) {
+                if (keyStates[i]) {
+                    return i
+                }
             }
+            return 0
         }
-        return 0
     }
 
     override fun revalidateKey(key: Int) {
-        if (keyStates[key]) {
-            lastKey = key
+        synchronized(lock) {
+            if (keyStates[key]) {
+                lastKey = key
+            }
         }
     }
 
     override fun revalidateAllKeys() {
-        for (i in 0 until keyStates.size) {
-            if (keyStates[i]) {
-                lastKey = i
-                break
+        synchronized(lock) {
+            for (i in 0 until keyStates.size) {
+                if (keyStates[i]) {
+                    lastKey = i
+                    break
+                }
             }
         }
     }

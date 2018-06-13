@@ -410,7 +410,7 @@ class Runtime(val ramModel: RamModel,
             // SetScreen(uint8)
             0x85 -> {
                 textModel.textMode =
-                    if (dataStack.pop() == 0)
+                    if ((dataStack.pop() and 0xff) == 0)
                         TextModel.TextMode.LARGE_FONT
                     else
                         TextModel.TextMode.SMALL_FONT
@@ -454,7 +454,7 @@ class Runtime(val ramModel: RamModel,
 
                 screenModel.target = if ((mode and 0x40) != 0) ScreenModel.Target.Graphics else ScreenModel.Target.Buffer
                 mode.applyDataDrawMode {
-                    val font = if ((mode and 0x80) != 0) TextModel.TextMode.SMALL_FONT else TextModel.TextMode.LARGE_FONT
+                    val font = if ((mode and 0x80) != 0) TextModel.TextMode.LARGE_FONT else TextModel.TextMode.SMALL_FONT
                     screenModel.drawString(x, y, ramModel, addr, addr1 - addr, font, it, (mode and 0x20) != 0, (mode and 0x8) != 0)
                 }
             }
@@ -880,7 +880,7 @@ class Runtime(val ramModel: RamModel,
                 dataStack.shrink(3)
             }
 
-            else -> throw VMException("非法指令: 0x${(code[pc - 1].toInt() and 0xff).toString(16)}")
+            else -> throw VMException("非法指令: 0x${(code[pc - 1].toInt() and 0xff).toString(16)} at PC=${pc - 1}")
         }
         return isOver
     }
