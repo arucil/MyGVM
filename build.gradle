@@ -14,8 +14,11 @@ version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
 apply plugin: 'kotlin'
+apply plugin: 'application'
 
 sourceCompatibility = 1.8
+
+mainClassName = 'plodsoft.mygvm.MainKt'
 
 repositories {
     mavenCentral()
@@ -38,7 +41,7 @@ compileTestKotlin {
 
 task fatJar(type: Jar) {
     manifest {
-        attributes 'Main-Class': '$mainClassName'
+        attributes 'Main-Class': "$mainClassName"
     }
     classifier = 'all'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }

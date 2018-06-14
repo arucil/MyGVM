@@ -24,6 +24,7 @@ class Window : JFrame(APP_NAME) {
         /**
          * Swing键值映射到lava键值
          */
+        @JvmStatic
         private val KeyCodeMapping = HashMap<Int, Int>().apply {
             fun HashMap<Int, Int>.put(key: Int, value: Char) {
                 put(key, value.toInt())
@@ -120,6 +121,8 @@ class Window : JFrame(APP_NAME) {
 
     private var status = Status.Initial
 
+    private val pressedKeys = HashSet<Int>()
+
     init {
         fileChooser.addChoosableFileFilter(FileNameExtensionFilter("GVmaker应用程序", "lav"))
 
@@ -200,10 +203,17 @@ class Window : JFrame(APP_NAME) {
             if (status == Status.Running || status == Status.Paused) {
                 when (it.id) {
                     KeyEvent.KEY_PRESSED -> {
-                        KeyCodeMapping[it.keyCode]?.let { keyboardModel.keyPressed(it) }
+                        KeyCodeMapping[it.keyCode]?.let {
+                            if (pressedKeys.add(it)) {
+                                keyboardModel.keyPressed(it)
+                            }
+                        }
                     }
                     KeyEvent.KEY_RELEASED -> {
-                        KeyCodeMapping[it.keyCode]?.let { keyboardModel.keyReleased(it) }
+                        KeyCodeMapping[it.keyCode]?.let {
+                            pressedKeys.remove(it)
+                            keyboardModel.keyReleased(it)
+                        }
                     }
                 }
             }
@@ -263,6 +273,8 @@ class Window : JFrame(APP_NAME) {
     }
 
     private fun start() {
+        pressedKeys.clear()
+
         runtime.prepare()
 
         vmThread = VMThread()
