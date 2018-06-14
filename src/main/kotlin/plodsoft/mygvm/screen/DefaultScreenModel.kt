@@ -307,23 +307,48 @@ class DefaultScreenModel(val graphicsRam: RamSegment, private val bufferRam: Ram
      * 画横线. 要求 x1 <= x2 且坐标位于屏幕范围内
      */
     private inline fun hLine(x1: Int, x2: Int, y: Int, mode: ScreenModel.ShapeDrawMode) {
-        for (x in x1..x2) {
-            point(x, y, mode)
+        val start = ScreenModel.BYTE_WIDTH * y + (x1 ushr 3)
+        val end = ScreenModel.BYTE_WIDTH * y + (x2 ushr 3)
+        for (index in start..end) {
+            var mask = 0
+            if (index == start) {
+                mask = mask or HigherBitsMask[x1 and 0x07]
+            }
+            if (index == end) {
+                mask = mask or LowerBitsMask[7 - (x2 and 0x07)]
+            }
+            when (mode) {
+                ScreenModel.ShapeDrawMode.Clear -> activeRam.setByte(index, (activeRam.getByte(index).toInt() and mask).toByte())
+                ScreenModel.ShapeDrawMode.Normal -> activeRam.setByte(index, (activeRam.getByte(index).toInt() or mask.inv()).toByte())
+                ScreenModel.ShapeDrawMode.Invert -> activeRam.setByte(index, (activeRam.getByte(index).toInt() xor mask.inv()).toByte())
+            }
         }
     }
 
     override fun drawLine(x1: Int, y1: Int, x2: Int, y2: Int, mode: ScreenModel.ShapeDrawMode) {
         if ((y2 - y1).absoluteValue <= (x2 - x1).absoluteValue) {
-            if (x1 <= x2) {
-                drawLineAux(x1, y1, x2, y2) { x, y -> checkedPoint(x, y, mode) }
-            } else {
-                drawLineAux(x2, y2, x1, y1) { x, y -> checkedPoint(x, y, mode) }
+            when {
+                x1 == x2 -> {
+                    if (y1 <= y2) {
+                        checkedVLine(x1, y1, y2, mode)
+                    } else {
+                        checkedVLine(x1, y2, y1, mode)
+                    }
+                }
+                x1 < x2 -> drawLineAux(x1, y1, x2, y2) { x, y -> checkedPoint(x, y, mode) }
+                else -> drawLineAux(x2, y2, x1, y1) { x, y -> checkedPoint(x, y, mode) }
             }
         } else {
-            if (y1 <= y2) {
-                drawLineAux(y1, x1, y2, x2) { y, x -> checkedPoint(x, y, mode) }
-            } else {
-                drawLineAux(y2, x2, y1, x1) { y, x -> checkedPoint(x, y, mode) }
+            when {
+                y1 == y2 -> {
+                    if (x1 <= x2) {
+                        checkedHLine(x1, x2, y1, mode)
+                    } else {
+                        checkedHLine(x2, x1, y1, mode)
+                    }
+                }
+                y1 < y2 -> drawLineAux(y1, x1, y2, x2) { y, x -> checkedPoint(x, y, mode) }
+                else -> drawLineAux(y2, x2, y1, x1) { y, x -> checkedPoint(x, y, mode) }
             }
         }
     }
@@ -379,8 +404,8 @@ class DefaultScreenModel(val graphicsRam: RamSegment, private val bufferRam: Ram
                 p += `b^2` + px
             } else {
                 if (fill) {
-                    ovalHLine(cx - x + 1, cx + x - 1, cy + y, mode)
-                    ovalHLine(cx - x + 1, cx + x - 1, cy - y, mode)
+                    checkedHLine(cx - x + 1, cx + x - 1, cy + y, mode)
+                    checkedHLine(cx - x + 1, cx + x - 1, cy - y, mode)
                 }
                 y--
                 py -= `2*a^2`
@@ -395,8 +420,8 @@ class DefaultScreenModel(val graphicsRam: RamSegment, private val bufferRam: Ram
 
         }
         if (fill) {
-            ovalHLine(cx - x, cx + x, cy + y, mode)
-            ovalHLine(cx - x, cx + x, cy - y, mode)
+            checkedHLine(cx - x, cx + x, cy + y, mode)
+            checkedHLine(cx - x, cx + x, cy - y, mode)
         }
         p = `b^2` * x * x + `b^2` * x + `a^2` * (y - 1) * (y - 1) - `a^2` * `b^2` + ((`b^2` + 2) ushr 2)
         while (--y > 0) {
@@ -409,8 +434,8 @@ class DefaultScreenModel(val graphicsRam: RamSegment, private val bufferRam: Ram
                 p += `a^2` - py + px
             }
             if (fill) {
-                ovalHLine(cx - x, cx + x, cy + y, mode)
-                ovalHLine(cx - x, cx + x, cy - y, mode)
+                checkedHLine(cx - x, cx + x, cy + y, mode)
+                checkedHLine(cx - x, cx + x, cy - y, mode)
             } else {
                 checkedPoint(cx - x, cy - y, mode)
                 checkedPoint(cx - x, cy + y, mode)
@@ -419,7 +444,7 @@ class DefaultScreenModel(val graphicsRam: RamSegment, private val bufferRam: Ram
             }
         }
         if (fill) {
-            ovalHLine(cx - a, cx + a, cy, mode)
+            checkedHLine(cx - a, cx + a, cy, mode)
         } else {
             checkedPoint(cx, cy + b, mode)
             checkedPoint(cx, cy - b, mode)
@@ -429,11 +454,19 @@ class DefaultScreenModel(val graphicsRam: RamSegment, private val bufferRam: Ram
     }
 
     // 要求 x1 <= x2, 不要求位于屏幕范围内
-    private inline fun ovalHLine(_x1: Int, _x2: Int, y: Int, mode: ScreenModel.ShapeDrawMode) {
+    private inline fun checkedHLine(_x1: Int, _x2: Int, y: Int, mode: ScreenModel.ShapeDrawMode) {
         if (y in 0 until ScreenModel.HEIGHT && _x2 >= 0 && _x1 < ScreenModel.WIDTH) {
             val x1 = if (_x1 < 0) 0 else _x1
             val x2 = if (_x2 >= ScreenModel.WIDTH) ScreenModel.WIDTH - 1 else _x2
             hLine(x1, x2, y, mode)
+        }
+    }
+
+    private inline fun checkedVLine(x: Int, _y1: Int, _y2: Int, mode: ScreenModel.ShapeDrawMode) {
+        if (x in 0 until ScreenModel.HEIGHT && _y2 >= 0 && _y1 < ScreenModel.WIDTH) {
+            val y1 = if (_y1 < 0) 0 else _y1
+            val y2 = if (_y2 >= ScreenModel.WIDTH) ScreenModel.WIDTH - 1 else _y2
+            vLine(x, y1, y2, mode)
         }
     }
 
