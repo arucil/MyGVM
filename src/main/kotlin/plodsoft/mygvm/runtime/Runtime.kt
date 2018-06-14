@@ -43,6 +43,7 @@ class Runtime(val ramModel: RamModel,
         private const val FALSE = 0
 
 
+        @JvmStatic
         fun create(): Runtime {
             val ramModel = DefaultRamModel()
             val screenModel = DefaultScreenModel(
@@ -60,6 +61,7 @@ class Runtime(val ramModel: RamModel,
         /**
          * 获取从addr开始的以\0结尾的字符串的结尾(\0)地址
          */
+        @JvmStatic
         private inline fun RamModel.getStringEnd(addr: Int): Int {
             ///TODO: 检查字符串没有\0结尾
             var addr1 = addr
@@ -72,6 +74,7 @@ class Runtime(val ramModel: RamModel,
         /**
          * 把 int 转换为 ShapeDrawMode, 然后调用action. 若 int 不是合法的 mode 值, 则不调用 action
          */
+        @JvmStatic
         private inline fun Int.applyShapeDrawMode(action: (ScreenModel.ShapeDrawMode) -> Unit) {
             when (this and 0x3) {
                 0 -> action(ScreenModel.ShapeDrawMode.Clear)
@@ -83,6 +86,7 @@ class Runtime(val ramModel: RamModel,
         /**
          * 把 int 转换为 DataDrawMode, 然后调用action. 若 int 不是合法的 mode 值, 则不调用 action
          */
+        @JvmStatic
         private inline fun Int.applyDataDrawMode(action: (ScreenModel.DataDrawMode) -> Unit) {
             when (this and 0x7) {
                 1 -> action(ScreenModel.DataDrawMode.Copy)
@@ -91,6 +95,11 @@ class Runtime(val ramModel: RamModel,
                 4 -> action(ScreenModel.DataDrawMode.And)
                 5 -> action(ScreenModel.DataDrawMode.Xor)
             }
+        }
+
+        @JvmStatic
+        private inline fun DataStack.push(value: Boolean) {
+            push(if (value) TRUE else FALSE)
         }
     }
 
@@ -133,9 +142,6 @@ class Runtime(val ramModel: RamModel,
             throw IllegalArgumentException("不支持的LAV文件版本: 0x" + code[3].toString(16))
         }
 
-        if (!code.sliceArray(4 until CODE_INITIAL_OFFSET).all { it == 0.toByte() }) {
-            throw IllegalArgumentException("非法的LAV文件")
-        }
     }
 
     /**
@@ -170,7 +176,21 @@ class Runtime(val ramModel: RamModel,
             return true
         }
 
-        when (code[pc++].toInt() and 0xff) {
+        /*
+            合并成一个大块when效率低下（why ??）
+         */
+        val op = code[pc++].toInt() and 0xff
+        when {
+            op <= 0x51 -> execOpcode(op)
+            op in 0x80..0xca -> execFunction(op)
+            else -> throw VMException("非法指令: 0x${op.toString(16)} at PC=${pc - 1}")
+        }
+
+        return isOver
+    }
+
+    private fun execOpcode(op: Int) {
+        when (op) {
             0x00 -> {}
 
             0x01 -> dataStack.push(fetchUint8())
@@ -237,7 +257,7 @@ class Runtime(val ramModel: RamModel,
                     else -> throw IllegalStateException("unreachable: invalid ptr type: $len")
                 }
 
-                when (code[pc - 1].toInt()) {
+                when (op) {
                     0x1d -> dataStack.push(++value)
                     0x1e -> dataStack.push(--value)
                     0x1f -> dataStack.push(value++)
@@ -369,9 +389,11 @@ class Runtime(val ramModel: RamModel,
             0x4f -> dataStack.push(dataStack.pop() < fetchInt16())
             0x50 -> dataStack.push(dataStack.pop() >= fetchInt16())
             0x51 -> dataStack.push(dataStack.pop() <= fetchInt16())
+        }
+    }
 
-            /* 系统函数 */
-
+    private fun execFunction(op: Int) {
+        when (op) {
             // putchar
             0x80 -> {
                 textModel.addByte(dataStack.pop().toByte())
@@ -379,7 +401,9 @@ class Runtime(val ramModel: RamModel,
             }
 
             // getchar
-            0x81 -> dataStack.push(keyboardModel.getLastKey(true))
+            0x81 -> {
+                dataStack.push(keyboardModel.getLastKey(true))
+            }
 
             // printf
             0x82 -> {
@@ -410,10 +434,10 @@ class Runtime(val ramModel: RamModel,
             // SetScreen(uint8)
             0x85 -> {
                 textModel.textMode =
-                    if ((dataStack.pop() and 0xff) == 0)
-                        TextModel.TextMode.LARGE_FONT
-                    else
-                        TextModel.TextMode.SMALL_FONT
+                        if ((dataStack.pop() and 0xff) == 0)
+                            TextModel.TextMode.LARGE_FONT
+                        else
+                            TextModel.TextMode.SMALL_FONT
                 textModel.clear()
             }
 
@@ -760,6 +784,17 @@ class Runtime(val ramModel: RamModel,
                 }
             }
 
+            0xae -> {}
+            0xaf -> {}
+            0xb0 -> {}
+            0xb1 -> {}
+            0xb2 -> {}
+            0xb3 -> {}
+            0xb4 -> {}
+            0xb5 -> {}
+            0xb6 -> {}
+            0xb7 -> {}
+
             // sprintf
             0xb8 -> {
                 val count = dataStack.pop() - 1
@@ -770,6 +805,9 @@ class Runtime(val ramModel: RamModel,
                 bytes.forEach { ramModel.setByte(addr++, it) }
                 ramModel.setByte(addr, 0)
             }
+
+            0xb9 -> {}
+            0xba -> {}
 
             // Getms
             0xbb -> dataStack.push((System.currentTimeMillis() % 1000 * 256 / 1000).toInt())
@@ -811,6 +849,9 @@ class Runtime(val ramModel: RamModel,
 
                 ramModel.xorEncrypt(addr, count, pwd)
             }
+
+            0xc0 -> {}
+            0xc1 -> {}
 
             // GetTime
             0xc2 -> {
@@ -879,15 +920,9 @@ class Runtime(val ramModel: RamModel,
             0xca -> {
                 dataStack.shrink(3)
             }
-
-            else -> throw VMException("非法指令: 0x${(code[pc - 1].toInt() and 0xff).toString(16)} at PC=${pc - 1}")
         }
-        return isOver
     }
 
-    private inline fun DataStack.push(value: Boolean) {
-        push(if (value) TRUE else FALSE)
-    }
 
     /**
      * 读取一字节无符号整数, pc++
