@@ -95,6 +95,13 @@ class Window : JFrame(APP_NAME) {
             put(KeyEvent.VK_CONTROL, 25) // Ctrl -> 帮助
             put(KeyEvent.VK_BACK_QUOTE, 18) // ` -> CAPS
         }
+
+        @JvmStatic
+        private val BmpHeader = byteArrayOf(
+                0x42, 0x4D, 0x7E, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3E, 0x00, 0x00, 0x00, 0x28, 0x00,
+                0x00, 0x00, 0xA0.toByte(), 0x00, 0x00, 0x00, 0xb0.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x01, 0x00, 0x01, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x40, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x00, 0x00, 0x00, 0x00, 0x00)
     }
 
     enum class Status {
@@ -197,9 +204,15 @@ class Window : JFrame(APP_NAME) {
             }
 
             menu("工具") {
-                checkBoxItem("减速运行", isSelected = isDelayEnabled, accelerator = KeyStroke.getKeyStroke("F10")) {
+                checkBoxItem("减速运行", isSelected = isDelayEnabled, accelerator = KeyStroke.getKeyStroke("F11")) {
                     addItemListener {
                         isDelayEnabled = this.isSelected
+                    }
+                }
+                separator()
+                item("截图", accelerator = KeyStroke.getKeyStroke("F9")) {
+                    addActionListener {
+                        takeScreenshot()
                     }
                 }
             }
@@ -339,6 +352,22 @@ class Window : JFrame(APP_NAME) {
                 vmThread!!.join()
             } catch (e: InterruptedException) {
                 e.printStackTrace()
+            }
+        }
+    }
+
+    private var shotNum = 0
+
+    private fun takeScreenshot() {
+        var file = File("Screenshot_${++shotNum}.bmp")
+        while (file.exists()) {
+            file = File("Screenshot_${++shotNum}.bmp")
+        }
+
+        BufferedOutputStream(FileOutputStream(file)).use {
+            it.write(BmpHeader)
+            screen!!.dataBuffer.let { db ->
+                it.write(db.data, db.offset, db.size)
             }
         }
     }

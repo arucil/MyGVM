@@ -19,6 +19,8 @@ class Screen(screenModel: DefaultScreenModel, bgColor: Int, fgColor: Int, pixelS
     private val timerRender = Timer()
     private var timerTaskRender: TimerTask? = null
 
+    val dataBuffer: DataBufferByte
+
     init {
         border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
 
@@ -28,9 +30,9 @@ class Screen(screenModel: DefaultScreenModel, bgColor: Int, fgColor: Int, pixelS
         preferredSize = Dimension(screenWidth + insets.left + insets.right, screenHeight + insets.top + insets.bottom)
 
         val cm = IndexColorModel(1, 2, intArrayOf(bgColor, fgColor), 0, false, -1, DataBuffer.TYPE_BYTE)
-        val db = DataBufferByte((screenModel.graphicsRam.backingRam as DefaultRamModel).data, ScreenModel.RAM_SIZE,
+        dataBuffer = DataBufferByte((screenModel.graphicsRam.backingRam as DefaultRamModel).data, ScreenModel.RAM_SIZE,
                 screenModel.graphicsRam.startingAddress)
-        val raster = WritableRaster.createPackedRaster(db, ScreenModel.WIDTH, ScreenModel.HEIGHT, 1, Point(0, 0))
+        val raster = WritableRaster.createPackedRaster(dataBuffer, ScreenModel.WIDTH, ScreenModel.HEIGHT, 1, Point(0, 0))
         bufImage = BufferedImage(cm, raster, cm.isAlphaPremultiplied, null)
     }
 
