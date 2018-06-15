@@ -53,6 +53,13 @@ interface FileSystem {
     fun deleteFile(path: String): Boolean
 
     /**
+     * 列出path目录下的文件
+     *
+     * @throws IllegalArgumentException
+     */
+    fun listFiles(path: String): Array<String>
+
+    /**
      * 文件接口
      */
     interface File {

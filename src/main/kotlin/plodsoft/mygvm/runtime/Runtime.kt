@@ -22,6 +22,7 @@ import java.io.File
 import java.io.IOException
 import java.nio.charset.Charset
 import java.util.*
+import kotlin.math.min
 
 
 class Runtime(val ramModel: RamModel,
@@ -50,6 +51,11 @@ class Runtime(val ramModel: RamModel,
         private const val FALSE = 0
 
         const val FS_ROOT = "GvmFiles"
+
+        /**
+         * 文件名的最大长度(gb2312)
+         */
+        private const val MAX_PATH = 18
 
 
         @JvmStatic
@@ -1052,7 +1058,10 @@ class Runtime(val ramModel: RamModel,
             }
 
             // FileList
-            0xc1 -> {}
+            0xc1 -> {
+                val pathAddr = dataStack.pop() and 0xffff
+                dataStack.push(chooseFile(pathAddr))
+            }
 
             // GetTime
             0xc2 -> {
@@ -1192,6 +1201,89 @@ class Runtime(val ramModel: RamModel,
 
             toByteArray()
         }
+
+    /* 列出当前工作目录下的文件供用户选择 */
+    private fun chooseFile(pathAddr: Int): Boolean {
+        val filenames = fileMan.listFiles()
+                .sorted()
+                .map { it.toByteArray(Charset.forName("gb2312")) }
+                .filter { it.size <= MAX_PATH }
+                .let {
+                    ArrayList<ByteArray>().apply {
+                        if (fileMan.workingDir != "/") {
+                            add(byteArrayOf(46, 46))
+                        }
+                        addAll(it)
+                    }
+                }
+
+        var index = 0
+        var offset = 0
+        outer@while (true) {
+            textModel.textMode = TextModel.TextMode.LARGE_FONT
+            textModel.clear()
+            for (i in offset until min(filenames.size, offset + DefaultTextModel.LARGE_FONT_ROWS)) {
+                textModel.setLocation(i - offset, 0)
+                textModel.addBytes(filenames[i])
+            }
+            textModel.renderToScreen(0)
+            screenModel.target = ScreenModel.Target.Graphics
+            val y = index * DefaultTextModel.LARGE_FONT_ROW_HEIGHT
+            screenModel.drawRect(0, y, ScreenModel.WIDTH - 1, y + (DefaultTextModel.LARGE_FONT_ROW_HEIGHT - 1),
+                    true, ScreenModel.ShapeDrawMode.Invert)
+
+            while (true) {
+                when (keyboardModel.getLastKey(true)) {
+                    13 -> {
+                        var addr = pathAddr
+                        val filename = filenames[offset + index]
+                        for (b in filename) {
+                            ramModel.setByte(addr++, b)
+                        }
+                        ramModel.setByte(addr, 0)
+                        return true
+                    }
+                    27 -> return false
+                    20, 23 -> { // 上
+                        if (index == 0) {
+                            if (--offset < 0) {
+                                offset = 0
+                            }
+                        } else {
+                            --index
+                        }
+                        continue@outer
+                    }
+                    21, 22 -> { // 下
+                        if (offset + index < filenames.size - 1) {
+                            if (index == DefaultTextModel.LARGE_FONT_ROWS - 1) {
+                                ++offset
+                            } else {
+                                ++index
+                            }
+                            continue@outer
+                        }
+                    }
+                    19 -> { // 上翻页
+                        offset -= DefaultTextModel.LARGE_FONT_ROWS
+                        if (offset < 0) {
+                            offset = 0
+                            index = 0
+                        }
+                        continue@outer
+                    }
+                    14 -> { // 下翻页
+                        offset += DefaultTextModel.LARGE_FONT_ROWS
+                        if (offset >= filenames.size) {
+                            offset -= DefaultTextModel.LARGE_FONT_ROWS
+                            index = filenames.size - offset - 1
+                        }
+                        continue@outer
+                    }
+                }
+            }
+        }
+    }
 
     private inline fun testUint8(predicate: (Int) -> Boolean) {
         dataStack.push(predicate(dataStack.pop() and 0xff))

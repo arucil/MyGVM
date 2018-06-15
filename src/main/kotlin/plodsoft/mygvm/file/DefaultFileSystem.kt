@@ -79,6 +79,10 @@ class DefaultFileSystem(initialRoot: String) : FileSystem {
         return f.delete()
     }
 
+    override fun listFiles(path: String): Array<String> {
+        return getNativeFile(path).list()
+    }
+
     /* */
     private inner class FileImpl(val nativeFile: File,
                            private var data: ByteArray,
@@ -119,7 +123,7 @@ class DefaultFileSystem(initialRoot: String) : FileSystem {
             isDirty = true
 
             if (offset + bytes.size > size) {
-                data.copyOf(offset + bytes.size)
+                data = data.copyOf(offset + bytes.size)
             }
 
             System.arraycopy(bytes, 0, data, offset, bytes.size)

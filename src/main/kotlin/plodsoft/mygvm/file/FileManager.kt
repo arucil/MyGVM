@@ -22,10 +22,11 @@ class FileManager(private val fileSystem: FileSystem) {
          * @throws IllegalArgumentException
          */
         set(value) {
-            if (!fileSystem.isValidDirectory(value)) {
+            val path = getAbsolutePath(value)
+            if (!fileSystem.isValidDirectory(path)) {
                 throw IllegalArgumentException("Not a valid directory")
             }
-            field = value
+            field = path
             if (!field.endsWith('/')) {
                 field += '/'
             }
@@ -222,5 +223,12 @@ class FileManager(private val fileSystem: FileSystem) {
      */
     fun deleteFile(path: String): Boolean {
         return fileSystem.deleteFile(getAbsolutePath(path))
+    }
+
+    /**
+     * 列出当前工作目录下的所有文件/目录
+     */
+    fun listFiles(): Array<String> {
+        return fileSystem.listFiles(workingDir)
     }
 }

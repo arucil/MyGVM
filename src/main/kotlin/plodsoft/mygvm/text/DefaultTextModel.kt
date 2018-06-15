@@ -106,7 +106,7 @@ class DefaultTextModel(private val ram: RamSegment, private val screenModel: Scr
         var i = 0
         while (i < bytes.size) {
             val b = bytes[i++]
-            if (b > 0) {
+            if (b >= 0) {
                 addByte(b)
             } else {
                 if (column == columns - 1) {
@@ -151,7 +151,7 @@ class DefaultTextModel(private val ram: RamSegment, private val screenModel: Scr
             screenModel.drawRect(ScreenModel.WIDTH - 2, 0, ScreenModel.WIDTH - 1, ScreenModel.HEIGHT - 1, true, ScreenModel.ShapeDrawMode.Clear)
 
             // 清除每行文本的空隙
-            for (y in (SMALL_FONT_HEIGHT + 1) until ScreenModel.HEIGHT step SMALL_FONT_HEIGHT) {
+            for (y in (SMALL_FONT_HEIGHT + 1) until ScreenModel.HEIGHT step SMALL_FONT_ROW_HEIGHT) {
                 screenModel.drawLine(0, y, ScreenModel.WIDTH - 1, y, ScreenModel.ShapeDrawMode.Clear)
             }
         }
