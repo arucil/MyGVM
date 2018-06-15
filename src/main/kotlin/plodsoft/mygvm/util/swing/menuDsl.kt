@@ -36,6 +36,19 @@ inline fun JMenu.item(text: String, mnemonic: Int = 0, accelerator: KeyStroke? =
     })
 }
 
+inline fun JMenu.checkBoxItem(init: JCheckBoxMenuItem.() -> Unit) {
+    add(JCheckBoxMenuItem().apply(init))
+}
+
+inline fun JMenu.checkBoxItem(text: String, isSelected: Boolean = false, mnemonic: Int = 0, accelerator: KeyStroke? = null, init: JCheckBoxMenuItem.() -> Unit) {
+    add(JCheckBoxMenuItem(text).apply {
+        this.isSelected = isSelected
+        this.mnemonic = mnemonic
+        accelerator?.let { this.accelerator = it }
+        init()
+    })
+}
+
 inline fun JMenu.separator() {
     add(JSeparator())
 }

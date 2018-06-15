@@ -1,13 +1,11 @@
 package plodsoft.mygvm.gui
 
+import plodsoft.mygvm.Config
 import plodsoft.mygvm.keyboard.DefaultKeyboardModel
 import plodsoft.mygvm.runtime.Runtime
 import plodsoft.mygvm.runtime.VMException
 import plodsoft.mygvm.screen.DefaultScreenModel
-import util.swing.dsl.item
-import util.swing.dsl.menu
-import util.swing.dsl.menuBar
-import util.swing.dsl.separator
+import util.swing.dsl.*
 import java.awt.*
 import java.awt.event.KeyEvent
 import java.awt.event.WindowAdapter
@@ -18,7 +16,7 @@ import javax.swing.filechooser.FileNameExtensionFilter
 
 class Window : JFrame(APP_NAME) {
     companion object {
-        private const val APP_NAME = "MyGVM"
+        const val APP_NAME = "MyGVM"
 
         /**
          * Swing键值映射到lava键值
@@ -118,6 +116,10 @@ class Window : JFrame(APP_NAME) {
 
     private var vmThread: VMThread? = null
 
+    private var cycleSteps = Config.steps
+    private var isDelayEnabled = Config.isDelayEnabled
+    private var delay = Config.delay
+
     private var status = Status.Initial
 
     private val pressedKeys = HashSet<Int>()
@@ -128,7 +130,7 @@ class Window : JFrame(APP_NAME) {
         setupMenu()
         setupKeyboard()
 
-        screen = Screen(runtime.screenModel as DefaultScreenModel, 0xa5a3a5, 0x242523, 2)
+        screen = Screen(runtime.screenModel as DefaultScreenModel, Config.backgroundColor, Config.foregroundColor, Config.pixelScale)
         add(screen)
 
         val panel = JPanel()
@@ -190,6 +192,14 @@ class Window : JFrame(APP_NAME) {
                 item("退出", accelerator = KeyStroke.getKeyStroke("alt F4")) {
                     addActionListener {
                         this@Window.dispatchEvent(WindowEvent(this@Window, WindowEvent.WINDOW_CLOSING))
+                    }
+                }
+            }
+
+            menu("工具") {
+                checkBoxItem("减速运行", isSelected = isDelayEnabled, accelerator = KeyStroke.getKeyStroke("F10")) {
+                    addItemListener {
+                        isDelayEnabled = this.isSelected
                     }
                 }
             }
@@ -356,9 +366,11 @@ class Window : JFrame(APP_NAME) {
                         }
                     }
 
-                    if (++steps >= 100) {
-                        steps = 0
-                        // Thread.sleep(30)
+                    if (isDelayEnabled) {
+                        if (++steps >= cycleSteps) {
+                            steps = 0
+                            Thread.sleep(0, delay)
+                        }
                     }
                 }
             } catch (e: InterruptedException) {
