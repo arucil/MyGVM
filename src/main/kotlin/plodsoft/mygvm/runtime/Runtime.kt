@@ -1,5 +1,8 @@
 package plodsoft.mygvm.runtime
 
+import plodsoft.mygvm.file.DefaultFileSystem
+import plodsoft.mygvm.file.FileManager
+import plodsoft.mygvm.file.FileSystem
 import plodsoft.mygvm.keyboard.DefaultKeyboardModel
 import plodsoft.mygvm.keyboard.KeyboardModel
 import plodsoft.mygvm.memory.DefaultRamModel
@@ -15,13 +18,17 @@ import kotlin.math.absoluteValue
 import kotlin.math.max
 import plodsoft.mygvm.text.DefaultTextModel
 import plodsoft.mygvm.text.TextModel
+import java.io.File
+import java.io.IOException
+import java.nio.charset.Charset
 import java.util.*
 
 
 class Runtime(val ramModel: RamModel,
               val screenModel: ScreenModel,
               private val textModel: TextModel,
-              val keyboardModel: KeyboardModel) {
+              val keyboardModel: KeyboardModel,
+              fileSystem: FileSystem) {
 
     companion object {
         private const val CODE_INITIAL_OFFSET = 16
@@ -42,9 +49,11 @@ class Runtime(val ramModel: RamModel,
         private const val TRUE = -1
         private const val FALSE = 0
 
+        const val FS_ROOT = "GvmFiles"
+
 
         @JvmStatic
-        fun create(): Runtime {
+        fun create(root: String = FS_ROOT): Runtime {
             val ramModel = DefaultRamModel()
             val screenModel = DefaultScreenModel(
                     RamSegment(ramModel, GRAPHICS_ADDRESS, ScreenModel.RAM_SIZE),
@@ -53,8 +62,9 @@ class Runtime(val ramModel: RamModel,
                     RamSegment(ramModel, TEXT_BUFFER_ADDRESS, DefaultTextModel.SMALL_FONT_ROWS * DefaultTextModel.SMALL_FONT_COLUMNS),
                     screenModel)
             val keyboardModel = DefaultKeyboardModel()
+            val fileSystem = DefaultFileSystem(File(root).canonicalPath)
 
-            return Runtime(ramModel, screenModel, textModel, keyboardModel)
+            return Runtime(ramModel, screenModel, textModel, keyboardModel, fileSystem)
         }
 
 
@@ -80,6 +90,7 @@ class Runtime(val ramModel: RamModel,
                 0 -> action(ScreenModel.ShapeDrawMode.Clear)
                 1 -> action(ScreenModel.ShapeDrawMode.Normal)
                 2 -> action(ScreenModel.ShapeDrawMode.Invert)
+                else -> throw VMException("Invalid shape mode: $this")
             }
         }
 
@@ -89,11 +100,12 @@ class Runtime(val ramModel: RamModel,
         @JvmStatic
         private inline fun Int.applyDataDrawMode(action: (ScreenModel.DataDrawMode) -> Unit) {
             when (this and 0x7) {
-                1 -> action(ScreenModel.DataDrawMode.Copy)
                 2 -> action(ScreenModel.DataDrawMode.Not)
                 3 -> action(ScreenModel.DataDrawMode.Or)
                 4 -> action(ScreenModel.DataDrawMode.And)
                 5 -> action(ScreenModel.DataDrawMode.Xor)
+                /* 默认是copy */
+                else -> action(ScreenModel.DataDrawMode.Copy)
             }
         }
 
@@ -101,6 +113,9 @@ class Runtime(val ramModel: RamModel,
         private inline fun DataStack.push(value: Boolean) {
             push(if (value) TRUE else FALSE)
         }
+
+        @JvmStatic
+        private inline fun ByteArray.toGBString() = String(this, Charset.forName("gb2312"))
     }
 
 
@@ -119,6 +134,8 @@ class Runtime(val ramModel: RamModel,
     private var stringLiteralXorFactor: Byte = 0
 
     private val randGen = RandomGen(0)
+
+    private val fileMan = FileManager(fileSystem)
 
     private val calendar = Calendar.getInstance()
 
@@ -158,12 +175,15 @@ class Runtime(val ramModel: RamModel,
 
         stringStackPtr = STRING_STACK_ADDRESS
         stringLiteralXorFactor = 0
+
+        fileMan.workingDir = "/"
     }
 
     /**
      * 程序执行结束后调用, 清理相关资源
      */
     fun cleanUp() {
+        fileMan.closeAllFiles()
     }
 
     /**
@@ -784,16 +804,163 @@ class Runtime(val ramModel: RamModel,
                 }
             }
 
-            0xae -> {}
-            0xaf -> {}
-            0xb0 -> {}
-            0xb1 -> {}
-            0xb2 -> {}
-            0xb3 -> {}
-            0xb4 -> {}
-            0xb5 -> {}
-            0xb6 -> {}
-            0xb7 -> {}
+            // fopen
+            0xae -> {
+                val modeAddr = dataStack.pop() and 0xffff
+                val pathAddr = dataStack.pop() and 0xffff
+
+                dataStack.push(try {
+                        fileMan.openFile(
+                                ramModel.getString(pathAddr).toGBString(),
+                                ramModel.getString(modeAddr).toGBString())
+                    } catch (e: IllegalArgumentException) {
+                        0
+                    } catch (e: IOException) {
+                        0
+                    })
+            }
+
+            // fclose
+            0xaf -> {
+                val fp = dataStack.pop() and 0xff
+                try {
+                    fileMan.closeFile(fp)
+                } catch (e: IllegalArgumentException) {
+                } catch (e: IOException) {}
+            }
+
+            // fread
+            0xb0 -> {
+                dataStack.shrink(4)
+                var addr = dataStack.peek(0) and 0xffff
+                val count = dataStack.peek(2) and 0xffff
+                val fp = dataStack.peek(3) and 0xff
+
+                try {
+                    val data = fileMan.readFile(fp, count)
+                    dataStack.push(data.size)
+
+                    for (i in 0 until data.size) {
+                        ramModel.setByte(addr++, data[i])
+                    }
+                } catch (e: IllegalArgumentException) {
+                    dataStack.push(0)
+                }
+            }
+
+            // fwrite
+            0xb1 -> {
+                dataStack.shrink(4)
+                var addr = dataStack.peek(0) and 0xffff
+                val count = dataStack.peek(2) and 0xffff
+                val fp = dataStack.peek(3) and 0xff
+
+                val data = with (ByteArrayOutputStream()) {
+                    for (i in 0 until count) {
+                        write(ramModel.getByte(addr++).toInt())
+                    }
+                    toByteArray()
+                }
+
+                try {
+                    val size = fileMan.writeFile(fp, data)
+                    dataStack.push(size)
+                } catch (e: IllegalArgumentException) {
+                    dataStack.push(0)
+                }
+            }
+
+            // fseek
+            0xb2 -> {
+                dataStack.shrink(3)
+                val fp = dataStack.peek(0) and 0xff
+                val offset = dataStack.peek(1)
+                val base = dataStack.peek(2) and 0xff
+
+                try {
+                    dataStack.push(when (base) {
+                        0 -> { // SEEK_SET
+                            fileMan.setFileOffset(fp, offset)
+                            fileMan.getFileOffset(fp)
+                        }
+                        1 -> { // SEEK_CUR
+                            fileMan.setFileOffset(fp, fileMan.getFileOffset(fp) + offset)
+                            fileMan.getFileOffset(fp)
+                        }
+                        2 -> { // SEEK_END
+                            fileMan.setFileOffset(fp, fileMan.getFileSize(fp) + offset)
+                            fileMan.getFileOffset(fp)
+                        }
+                        else -> -1
+                    })
+                } catch (e: IllegalArgumentException) {
+                    dataStack.push(-1)
+                }
+            }
+
+            // ftell
+            0xb3 -> {
+                val fp = dataStack.pop() and 0xff
+
+                try {
+                    dataStack.push(fileMan.getFileOffset(fp))
+                } catch (e: IllegalArgumentException) {
+                    dataStack.push(-1)
+                }
+            }
+
+            // feof
+            0xb4 -> {
+                val fp = dataStack.pop() and 0xff
+
+                try {
+                    dataStack.push(fileMan.isEOF(fp))
+                } catch (e: IllegalArgumentException) {
+                    dataStack.push(true)
+                }
+            }
+
+            // rewind
+            0xb5 -> {
+                val fp = dataStack.pop() and 0xff
+
+                try {
+                    fileMan.setFileOffset(fp, 0)
+                } catch (e: IllegalArgumentException) {
+                }
+            }
+
+            // getc
+            0xb6 -> {
+                val fp = dataStack.pop() and 0xff
+
+                try {
+                    val bytes = fileMan.readFile(fp, 1)
+                    if (bytes.size == 1) {
+                        dataStack.push(bytes[0].toInt() and 0xff)
+                    } else {
+                        dataStack.push(-1)
+                    }
+                } catch (e: IllegalArgumentException) {
+                    dataStack.push(-1)
+                }
+            }
+
+            // putc
+            0xb7 -> {
+                val fp = dataStack.pop() and 0xff
+                val ch = dataStack.pop() and 0xff
+
+                try {
+                    if (fileMan.writeFile(fp, byteArrayOf(ch.toByte())) == 1) {
+                        dataStack.push(ch)
+                    } else {
+                        dataStack.push(-1)
+                    }
+                } catch (e: IllegalArgumentException) {
+                    dataStack.push(-1)
+                }
+            }
 
             // sprintf
             0xb8 -> {
@@ -806,8 +973,29 @@ class Runtime(val ramModel: RamModel,
                 ramModel.setByte(addr, 0)
             }
 
-            0xb9 -> {}
-            0xba -> {}
+            // MakeDir
+            0xb9 -> {
+                val pathAddr = dataStack.pop() and 0xffff
+                val path = ramModel.getString(pathAddr).toGBString()
+
+                try {
+                    dataStack.push(fileMan.createDirectory(path))
+                } catch (e: IllegalArgumentException) {
+                    dataStack.push(false)
+                }
+            }
+
+            // DeleteFile
+            0xba -> {
+                val pathAddr = dataStack.pop() and 0xffff
+                val path = ramModel.getString(pathAddr).toGBString()
+
+                try {
+                    dataStack.push(fileMan.deleteFile(path))
+                } catch (e: IllegalArgumentException) {
+                    dataStack.push(false)
+                }
+            }
 
             // Getms
             0xbb -> dataStack.push((System.currentTimeMillis() % 1000 * 256 / 1000).toInt())
@@ -850,7 +1038,20 @@ class Runtime(val ramModel: RamModel,
                 ramModel.xorEncrypt(addr, count, pwd)
             }
 
-            0xc0 -> {}
+            // ChDir
+            0xc0 -> {
+                val pathAddr = dataStack.pop() and 0xffff
+                val path = ramModel.getString(pathAddr).toGBString()
+
+                dataStack.push(try {
+                            fileMan.workingDir = path
+                            true
+                        } catch (e: IllegalArgumentException) {
+                            false
+                        })
+            }
+
+            // FileList
             0xc1 -> {}
 
             // GetTime

@@ -23,5 +23,5 @@ fun InputStream.readAll(): ByteArray =
  */
 fun File.readAll(): ByteArray =
     BufferedInputStream(FileInputStream(this)).use {
-        readAll()
+        it.readAll()
     }

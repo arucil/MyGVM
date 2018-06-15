@@ -18,7 +18,6 @@ import javax.swing.filechooser.FileNameExtensionFilter
 
 class Window : JFrame(APP_NAME) {
     companion object {
-        private const val FS_ROOT = "GvmFiles"
         private const val APP_NAME = "MyGVM"
 
         /**
@@ -111,7 +110,7 @@ class Window : JFrame(APP_NAME) {
     private var labelFile: JLabel? = null
     private var labelStatus: JLabel? = null
 
-    private val fileChooser = JFileChooser(FS_ROOT)
+    private val fileChooser = JFileChooser(Runtime.FS_ROOT)
 
     private var screen: Screen? = null
 
@@ -191,6 +190,28 @@ class Window : JFrame(APP_NAME) {
                 item("退出", accelerator = KeyStroke.getKeyStroke("alt F4")) {
                     addActionListener {
                         this@Window.dispatchEvent(WindowEvent(this@Window, WindowEvent.WINDOW_CLOSING))
+                    }
+                }
+            }
+
+            menu("帮助") {
+                item("内容") {
+                    addActionListener {
+                        JOptionPane.showMessageDialog(this,
+                                """
+                                    按键：
+                                    [`] 对应 CAPS
+                                    [Ctrl] 对应 帮助
+                                """.trimIndent(), APP_NAME, JOptionPane.PLAIN_MESSAGE)
+                    }
+                }
+                item("关于") {
+                    addActionListener {
+                        JOptionPane.showMessageDialog(this,
+                                """
+                                    Github: arucil
+                                    参考了Eastsun的JGVM
+                                """.trimIndent(), APP_NAME, JOptionPane.PLAIN_MESSAGE)
                     }
                 }
             }
@@ -328,7 +349,7 @@ class Window : JFrame(APP_NAME) {
         override fun run() {
             try {
                 var steps = 0
-                while (!runtime.runOneStep()) {
+                while (!isInterrupted && !runtime.runOneStep()) {
                     while (isPaused) {
                         synchronized(lock) {
                             lock.wait()
