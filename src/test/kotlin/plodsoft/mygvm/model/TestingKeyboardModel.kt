@@ -51,4 +51,7 @@ class TestingKeyboardModel(inputStream: InputStream, outputStream: OutputStream)
     override fun revalidateAllKeys() {
         out.println("[revalidate all keys]")
     }
+
+    override fun reset() {
+    }
 }

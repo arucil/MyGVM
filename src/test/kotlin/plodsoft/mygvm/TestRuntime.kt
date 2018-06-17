@@ -1,6 +1,7 @@
 package plodsoft.mygvm.testruntime
 
 import plodsoft.mygvm.TestingInputStream
+import plodsoft.mygvm.file.DefaultFileSystem
 import plodsoft.mygvm.memory.DefaultRamModel
 import plodsoft.mygvm.model.TestingKeyboardModel
 import plodsoft.mygvm.model.TestingScreenModel
@@ -13,7 +14,7 @@ fun testRuntime() {
     val ram = DefaultRamModel()
     val input = TestingInputStream()
     val output = ByteArrayOutputStream()
-    val runtime = plodsoft.mygvm.runtime.Runtime(ram, TestingScreenModel(output), TestingTextModel(output), TestingKeyboardModel(input, output))
+    val runtime = plodsoft.mygvm.runtime.Runtime(ram, TestingScreenModel(output), TestingTextModel(output), TestingKeyboardModel(input, output), DefaultFileSystem("."))
 
     /**
     void main() {
