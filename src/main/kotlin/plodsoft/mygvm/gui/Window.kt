@@ -192,7 +192,7 @@ class Window : JFrame(APP_NAME) {
                         }
                     }
                 }
-                item("停止", accelerator = KeyStroke.getKeyStroke("F6")) {
+                item("停止", accelerator = KeyStroke.getKeyStroke("control F6")) {
                     mnuStop = this
                     addActionListener {
                         stop()
