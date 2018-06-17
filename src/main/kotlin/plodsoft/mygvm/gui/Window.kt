@@ -2,6 +2,8 @@ package plodsoft.mygvm.gui
 
 import plodsoft.mygvm.Config
 import plodsoft.mygvm.keyboard.DefaultKeyboardModel
+import plodsoft.mygvm.memory.DefaultRamModel
+import plodsoft.mygvm.memory.RamModel
 import plodsoft.mygvm.runtime.Runtime
 import plodsoft.mygvm.runtime.VMException
 import plodsoft.mygvm.screen.DefaultScreenModel
@@ -111,6 +113,7 @@ class Window : JFrame(APP_NAME) {
     private var mnuLoad: JMenuItem? = null
     private var mnuRun: JMenuItem? = null
     private var mnuStop: JMenuItem? = null
+    private var mnuMenEdit: JMenuItem? = null
 
     private var labelFile: JLabel? = null
     private var labelStatus: JLabel? = null
@@ -215,6 +218,16 @@ class Window : JFrame(APP_NAME) {
                         takeScreenshot()
                     }
                 }
+                separator()
+                item("内存编辑", accelerator = KeyStroke.getKeyStroke("F8")) {
+                    mnuMenEdit = this
+                    addActionListener {
+                        val dialog = MemEditDialog(this@Window, (runtime.ramModel as DefaultRamModel).data,
+                                0,
+                                RamModel.SIZE)
+                        dialog.isVisible = true
+                    }
+                }
             }
 
             menu("帮助") {
@@ -272,6 +285,7 @@ class Window : JFrame(APP_NAME) {
                 mnuLoad!!.isEnabled = true
                 mnuRun!!.isEnabled = false
                 mnuStop!!.isEnabled = false
+                mnuMenEdit!!.isEnabled = false
                 mnuRun!!.text = "运行"
                 labelStatus!!.text = "准备就绪"
             }
@@ -279,6 +293,7 @@ class Window : JFrame(APP_NAME) {
                 mnuLoad!!.isEnabled = true
                 mnuRun!!.isEnabled = true
                 mnuStop!!.isEnabled = false
+                mnuMenEdit!!.isEnabled = false
                 mnuRun!!.text = "运行"
                 labelStatus!!.text = "文件已加载"
             }
@@ -286,6 +301,7 @@ class Window : JFrame(APP_NAME) {
                 mnuLoad!!.isEnabled = false
                 mnuRun!!.isEnabled = true
                 mnuStop!!.isEnabled = true
+                mnuMenEdit!!.isEnabled = false
                 mnuRun!!.text = "暂停"
                 labelStatus!!.text = "正在运行"
             }
@@ -293,6 +309,7 @@ class Window : JFrame(APP_NAME) {
                 mnuLoad!!.isEnabled = false
                 mnuRun!!.isEnabled = true
                 mnuStop!!.isEnabled = true
+                mnuMenEdit!!.isEnabled = true
                 mnuRun!!.text = "继续"
                 labelStatus!!.text = "已暂停"
             }

@@ -129,8 +129,10 @@ class Runtime(val ramModel: RamModel,
     private var pc: Int = 0
     private val dataStack = DataStack(DATA_STACK_CAPACITY)
     private var currentFrameBase: Int = 0
-    private var currentFrameEnd: Int = 0 // 下一栈帧的起始地址
-    private var initialFrameBase: Int = 0
+    var currentFrameEnd: Int = 0 // 下一栈帧的起始地址
+        private set
+    var initialFrameBase: Int = 0
+        private set
 
     private var isOver = false // 程序是否执行结束
 
