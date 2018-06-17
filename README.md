@@ -8,3 +8,7 @@ GVmaker 1.0虚拟机. 参考了Eastsun的JGVM（[原贴](http://www.emsky.net/bb
 # 其他
 
 附带了几个小工具: 程序运行时内存编辑器
+
+# 截图
+
+![](截图.png)
