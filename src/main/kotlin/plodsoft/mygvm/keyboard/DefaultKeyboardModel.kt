@@ -1,5 +1,7 @@
 package plodsoft.mygvm.keyboard
 
+import java.util.*
+
 class DefaultKeyboardModel : KeyboardModel {
     private val keyStates = BooleanArray(128)
 
@@ -9,6 +11,11 @@ class DefaultKeyboardModel : KeyboardModel {
     private var lastKey = 0
 
     private val lock = Object()
+
+    override fun reset() {
+        lastKey = 0
+        Arrays.fill(keyStates, false)
+    }
 
     /**
      * 接收按键事件

@@ -37,4 +37,9 @@ interface KeyboardModel {
      * 释放所有按键
      */
     fun revalidateAllKeys()
+
+    /**
+     * 重置按键相关数据
+     */
+    fun reset()
 }
