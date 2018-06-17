@@ -277,7 +277,18 @@ class ContentArea(val window: Window,
         }
     }
 
-    private inline fun getMaxColumns(row: Int) = if (row == maxRows - 1) count % ROW_BYTES else ROW_BYTES
+    private inline fun getMaxColumns(row: Int): Int {
+        return if (row == maxRows - 1) {
+            val x = count % ROW_BYTES
+            if (x == 0) {
+                ROW_BYTES
+            } else {
+                x
+            }
+        } else {
+            ROW_BYTES
+        }
+    }
 
     /**
      * @param x 0~15
