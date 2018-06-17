@@ -111,7 +111,10 @@ class Runtime(val ramModel: RamModel,
                 4 -> action(ScreenModel.DataDrawMode.And)
                 5 -> action(ScreenModel.DataDrawMode.Xor)
                 /* 默认是copy */
-                else -> action(ScreenModel.DataDrawMode.Copy)
+                else -> {
+                    println(this and 0x7)
+                    action(ScreenModel.DataDrawMode.Copy)
+                }
             }
         }
 
@@ -183,6 +186,8 @@ class Runtime(val ramModel: RamModel,
 
         stringStackPtr = STRING_STACK_ADDRESS
         stringLiteralXorFactor = 0
+
+        keyboardModel.reset()
 
         fileMan.workingDir = "/"
     }
@@ -520,7 +525,7 @@ class Runtime(val ramModel: RamModel,
                 val y1 = dataStack.peek(3)
                 val mode = dataStack.peek(4)
 
-                screenModel.target = ScreenModel.Target.Buffer
+                screenModel.target = if ((mode and 0x40) != 0) ScreenModel.Target.Graphics else ScreenModel.Target.Buffer
                 mode.applyShapeDrawMode {
                     screenModel.drawRect(x, y, x1, y1, true, it)
                 }
@@ -535,7 +540,7 @@ class Runtime(val ramModel: RamModel,
                 val y1 = dataStack.peek(3)
                 val mode = dataStack.peek(4)
 
-                screenModel.target = ScreenModel.Target.Buffer
+                screenModel.target = if ((mode and 0x40) != 0) ScreenModel.Target.Graphics else ScreenModel.Target.Buffer
                 mode.applyShapeDrawMode {
                     screenModel.drawRect(x, y, x1, y1, false, it)
                 }
