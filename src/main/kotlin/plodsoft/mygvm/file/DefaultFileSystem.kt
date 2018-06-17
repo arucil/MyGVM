@@ -29,15 +29,15 @@ class DefaultFileSystem(initialRoot: String) : FileSystem {
             file.createNewFile()
         }
 
+        if (openFiles.find { it.nativeFile == file } !== null) {
+            throw IOException("File already open: $path")
+        }
+
         val canRead = (mode and FileSystem.READ) != 0
         val canWrite = (mode and FileSystem.WRITE) != 0
 
         if (!canRead && !canWrite) {
             throw IllegalArgumentException("At least one of READ and WRITE must be specified")
-        }
-
-        if (openFiles.find { it.nativeFile == file } !== null) {
-            throw IOException("File already open: $path")
         }
 
         val f = FileImpl(file, file.readAll(), canRead, canWrite)
@@ -127,6 +127,9 @@ class DefaultFileSystem(initialRoot: String) : FileSystem {
             }
 
             System.arraycopy(bytes, 0, data, offset, bytes.size)
+
+            offset += bytes.size
+
             return bytes.size
         }
 
