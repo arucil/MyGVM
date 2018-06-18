@@ -11,8 +11,7 @@ import kotlin.math.min
 /**
  * 十六进制数据编辑器
  */
-class ContentArea(private val window: Window,
-                  val data: ByteArray,
+class ContentArea(val data: ByteArray,
                   val offset: Int = 0,
                   val count: Int = data.size)
     : JComponent(), Scrollable, KeyListener {
@@ -60,7 +59,6 @@ class ContentArea(private val window: Window,
 
     private val undoMan = UndoManager()
 
-    private val findDialog = FindDialog(window, this)
 
 
     init {
@@ -215,6 +213,18 @@ class ContentArea(private val window: Window,
         }
     }
 
+    fun undo() {
+        if (undoMan.canUndo()) {
+            undoMan.undo()
+        }
+    }
+
+    fun redo() {
+        if (undoMan.canRedo()) {
+            undoMan.redo()
+        }
+    }
+
     override fun keyPressed(e: KeyEvent) {
         when (e.keyCode) {
             KeyEvent.VK_UP -> {
@@ -247,38 +257,8 @@ class ContentArea(private val window: Window,
                 }
             }
             KeyEvent.VK_RIGHT -> moveCaretForward()
-            KeyEvent.VK_Z -> {
-                if (e.isControlDown && !e.isAltDown && !e.isShiftDown && undoMan.canUndo()) {
-                    undoMan.undo()
-                }
-            }
-            KeyEvent.VK_Y -> {
-                if (e.isControlDown && !e.isAltDown && !e.isShiftDown && undoMan.canRedo()) {
-                    undoMan.redo()
-                }
-            }
-            KeyEvent.VK_G -> {
-                if (e.isControlDown && !e.isAltDown && !e.isShiftDown) {
-                    val isDec = e.isAltDown
-                    val input = JOptionPane.showInputDialog(window, "请输入地址 (${if (isDec) "DEC" else "HEX"})",
-                            plodsoft.mygvm.gui.Window.APP_NAME, JOptionPane.PLAIN_MESSAGE)
-                    if (input != null) {
-                        try {
-                            gotoAddress(Integer.parseInt(input, if (isDec) 10 else 16))
-                        } catch (e: NumberFormatException) {
-                        }
-                    }
-                }
-            }
-            KeyEvent.VK_F3 -> {
-                if (!findDialog.bytes.isEmpty()) {
-                    findBytes(findDialog.bytes, !e.isAltDown)
-                }
-            }
             else -> {
-                if (e.keyCode == KeyEvent.VK_F && e.isControlDown) {
-                    findDialog.isVisible = true
-                } else if (!e.isControlDown && !e.isAltDown) {
+                if (!e.isControlDown && !e.isAltDown) {
                     val x = Character.digit(e.keyChar, 16)
                     if (x >= 0) {
                         editContent(x)
@@ -333,7 +313,7 @@ class ContentArea(private val window: Window,
         }
     }
 
-    private fun gotoAddress(addr: Int) {
+    fun gotoAddress(addr: Int) {
         if (addr !in offset until (offset + count)) {
             return
         }

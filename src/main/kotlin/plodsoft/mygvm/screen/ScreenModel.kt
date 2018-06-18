@@ -50,6 +50,11 @@ interface ScreenModel {
     var target: Target
 
     /**
+     * 清空屏幕和缓冲区，重置target为Graphics
+     */
+    fun reset()
+
+    /**
      * 清空屏幕或缓冲区
      */
     fun clear()

@@ -2,6 +2,7 @@ package plodsoft.mygvm.gui.hexedit
 
 import java.awt.Color
 import java.awt.Window
+import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
@@ -28,8 +29,8 @@ class FindDialog(owner: Window, private val contentArea: ContentArea) : JDialog(
 
         textField = JTextField()
         comboType = JComboBox(arrayOf("十六进制", "字符串(GB2312)"))
-        btnNext = JButton("查找下一个 (F3)")
-        btnPrev = JButton("查找上一个 (Alt+F3)")
+        btnNext = JButton("查找下一个")
+        btnPrev = JButton("查找上一个")
         label = JLabel()
 
         gl.setHorizontalGroup(
@@ -62,13 +63,13 @@ class FindDialog(owner: Window, private val contentArea: ContentArea) : JDialog(
         setLocationRelativeTo(null)
 
         setup()
+
+        textField.requestFocus()
     }
 
     private fun setup() {
         val findNext = ActionListener {
-            if (!textField.text.isEmpty()) {
-                convertTextToBytes()
-
+            if (!textField.text.isEmpty() && convertTextToBytes()) {
                 contentArea.findBytes(bytes, true)
             }
         }
@@ -77,28 +78,18 @@ class FindDialog(owner: Window, private val contentArea: ContentArea) : JDialog(
         btnNext.addActionListener(findNext)
 
         val findPrev = ActionListener {
-            if (!textField.text.isEmpty()) {
-                convertTextToBytes()
+            if (!textField.text.isEmpty() && convertTextToBytes()) {
                 contentArea.findBytes(bytes, false)
             }
         }
 
         btnPrev.addActionListener(findPrev)
-
-        addKeyListener(object : KeyAdapter() {
-            override fun keyPressed(e: KeyEvent) {
-                if (e.keyCode == KeyEvent.VK_F3) {
-                    if (e.isAltDown) {
-                        findNext.actionPerformed(null)
-                    } else {
-                        findPrev.actionPerformed(null)
-                    }
-                }
-            }
-        })
     }
 
-    private fun convertTextToBytes() {
+    /**
+     * 返回是否转换成功
+     */
+    private fun convertTextToBytes(): Boolean {
         val text = textField.text
 
         when (comboType.selectedIndex) {
@@ -106,16 +97,19 @@ class FindDialog(owner: Window, private val contentArea: ContentArea) : JDialog(
                 if (text.length % 2 != 0) {
                     label.foreground = Color.RED
                     label.text = "长度必须为偶数"
-                    return
+                    return false
                 }
 
                 bytes = text.chunked(2).map { Integer.parseInt(it, 16).toByte() }.toByteArray()
+                return true
             }
 
             1 -> { // 字符串
                 bytes = text.toByteArray(Charset.forName("gb2312"))
+                return true
             }
         }
+        return false
     }
 }
 

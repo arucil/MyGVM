@@ -106,6 +106,13 @@ class DefaultScreenModel(val graphicsRam: RamSegment, private val bufferRam: Ram
         activeRam.zero()
     }
 
+    override fun reset() {
+        target = ScreenModel.Target.Buffer
+        clear()
+        target = ScreenModel.Target.Graphics
+        clear()
+    }
+
     override fun drawData(_x: Int, _y: Int, _width: Int, _height: Int, mem: ReadableMemory, _addr: Int,
                           _mode: ScreenModel.DataDrawMode, horizontalMirrored: Boolean, inverse: Boolean) {
         var x = _x

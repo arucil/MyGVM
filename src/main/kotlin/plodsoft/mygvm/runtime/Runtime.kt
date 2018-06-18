@@ -187,6 +187,7 @@ class Runtime(val ramModel: RamModel,
         currentFrameEnd = -1
         initialFrameBase = -1
 
+        textModel.reset()
         ramModel.fill(0x2000, FRAME_STACK_CAPACITY, 0) // 清空栈帧区
 
         stringStackPtr = STRING_STACK_ADDRESS
@@ -476,7 +477,7 @@ class Runtime(val ramModel: RamModel,
                             TextModel.TextMode.LARGE_FONT
                         else
                             TextModel.TextMode.SMALL_FONT
-                textModel.clear()
+                textModel.reset()
             }
 
             // UpdateLCD(char)
@@ -1233,7 +1234,7 @@ class Runtime(val ramModel: RamModel,
         var offset = 0
         outer@while (true) {
             textModel.textMode = TextModel.TextMode.LARGE_FONT
-            textModel.clear()
+            textModel.reset()
             for (i in offset until min(filenames.size, offset + DefaultTextModel.LARGE_FONT_ROWS)) {
                 textModel.setLocation(i - offset, 0)
                 textModel.addBytes(filenames[i])

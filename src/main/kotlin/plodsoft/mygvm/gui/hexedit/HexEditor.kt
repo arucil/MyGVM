@@ -1,29 +1,28 @@
 package plodsoft.mygvm.gui.hexedit
 
 import java.awt.*
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
-import java.awt.event.KeyListener
-import javax.swing.BorderFactory
-import javax.swing.JComponent
-import javax.swing.JPanel
-import javax.swing.JScrollPane
+import java.awt.event.ActionEvent
+import javax.swing.*
 
-class HexEditor(window: Window,
+class HexEditor(private val window: Window,
                 private val data: ByteArray,
-                private val offset: Int = 0,
-                private val count: Int = data.size)
+                offset: Int = 0,
+                count: Int = data.size)
     : JComponent() {
 
     private val scrollPane: JScrollPane
     private val contentArea: ContentArea
     private val contentDetail: ContentDetailPanel
 
+    private val findDialog: FindDialog
+
     init {
         layout = BorderLayout()
 
-        contentArea = ContentArea(window, data, offset, count)
+        contentArea = ContentArea(data, offset, count)
         scrollPane = JScrollPane(contentArea)
+
+        findDialog = FindDialog(window, contentArea)
 
         add(scrollPane)
 
@@ -55,6 +54,62 @@ class HexEditor(window: Window,
 
         isFocusable = true
         addKeyListener(contentArea)
+
+        setupAccel()
+    }
+
+    private inline fun addAccel(name: String, key: String, crossinline action: () -> Unit) {
+        actionMap.put(name, object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                action()
+            }
+        })
+        inputMap.put(KeyStroke.getKeyStroke(key), name)
+    }
+
+    private fun gotoAddr(isDec: Boolean) {
+        JOptionPane.showInputDialog(window, "请输入地址 (${if (isDec) "DEC" else "HEX"})",
+                plodsoft.mygvm.gui.Window.APP_NAME, JOptionPane.PLAIN_MESSAGE)
+                ?.let { input ->
+                    try {
+                        contentArea.gotoAddress(Integer.parseInt(input, if (isDec) 10 else 16))
+                    } catch (e: NumberFormatException) {
+                    }
+                }
+    }
+
+    private fun setupAccel() {
+        addAccel("undo", "control Z") {
+            contentArea.undo()
+        }
+
+        addAccel("redo", "control Y") {
+            contentArea.redo()
+        }
+
+        addAccel("gotoHex", "control G") {
+            gotoAddr(false)
+        }
+
+        addAccel("gotoDec", "control alt G") {
+            gotoAddr(true)
+        }
+
+        addAccel("findNext", "F3") {
+            if (!findDialog.bytes.isEmpty()) {
+                contentArea.findBytes(findDialog.bytes, true)
+            }
+        }
+
+        addAccel("findPrev", "shift F3") {
+            if (!findDialog.bytes.isEmpty()) {
+                contentArea.findBytes(findDialog.bytes, false)
+            }
+        }
+
+        addAccel("showFindDialog", "control F") {
+            findDialog.isVisible = true
+        }
     }
 
     private fun scrollCaretToViewport() {

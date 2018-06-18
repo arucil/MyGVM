@@ -18,7 +18,7 @@ interface TextModel {
     /**
      * 清除屏幕并复位坐标
      */
-    fun clear()
+    fun reset()
 
     /**
      * 不刷新屏幕

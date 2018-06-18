@@ -56,7 +56,7 @@ class DefaultTextModel(private val ram: RamSegment, private val screenModel: Scr
         textMode = TextMode.LARGE_FONT
     }
 
-    override fun clear() {
+    override fun reset() {
         row = 0
         column = 0
         ram.zero()

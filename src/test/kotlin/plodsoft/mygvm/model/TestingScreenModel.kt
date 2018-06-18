@@ -17,6 +17,8 @@ class TestingScreenModel(outputStream: OutputStream) : ScreenModel {
     override var dirtyRegion: Rect = Rect.EMPTY
         get() = TODO("not implemented")
 
+    override fun reset() { }
+
     private inline fun targetStr() = if (target == ScreenModel.Target.Graphics) "screen" else "buffer"
 
     private inline fun Boolean.fillStr() = if (this) "fill" else "no-fill"
