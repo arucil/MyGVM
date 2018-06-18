@@ -9,7 +9,7 @@ import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 
-class HexEditor(val window: Window,
+class HexEditor(window: Window,
                 private val data: ByteArray,
                 private val offset: Int = 0,
                 private val count: Int = data.size)
@@ -46,6 +46,13 @@ class HexEditor(val window: Window,
             }
         })
 
+        contentArea.addFindStatusListener(object : FindStatusListener {
+            override fun findStatusChanged(e: FindStatusEvent) {
+                contentDetail.findStatus = if (e.isFound) "" else "没有找到"
+                contentDetail.repaint()
+            }
+        })
+
         isFocusable = true
         addKeyListener(contentArea)
     }
@@ -75,6 +82,8 @@ class HexEditor(val window: Window,
     }
 
     private inner class ContentDetailPanel : JPanel() {
+        var findStatus: String = ""
+
         init {
             border = BorderFactory.createEmptyBorder(ContentArea.BORDER_TOP, ContentArea.BORDER_LEFT, ContentArea.BORDER_BOTTOM, ContentArea.BORDER_RIGHT)
         }
@@ -83,6 +92,13 @@ class HexEditor(val window: Window,
             super.paintComponent(g)
             g.drawString(String.format("地址: 0x%04X / %d", contentArea.caretAddress, contentArea.caretAddress),
                     ContentArea.BORDER_LEFT, ContentArea.BORDER_TOP + contentArea.charAscent)
+
+            if (!findStatus.isEmpty()) {
+                val fm = g.fontMetrics
+                val rect = fm.getStringBounds(findStatus, g)
+                g.color = Color.RED
+                g.drawString(findStatus, width - insets.right - rect.width.toInt(), ContentArea.BORDER_TOP + contentArea.charAscent)
+            }
         }
     }
 }

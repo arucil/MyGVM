@@ -11,10 +11,10 @@ import kotlin.math.min
 /**
  * 十六进制数据编辑器
  */
-class ContentArea(val window: Window,
-                  private val data: ByteArray,
-                  private val offset: Int = 0,
-                  private val count: Int = data.size)
+class ContentArea(private val window: Window,
+                  val data: ByteArray,
+                  val offset: Int = 0,
+                  val count: Int = data.size)
     : JComponent(), Scrollable, KeyListener {
 
     companion object {
@@ -56,8 +56,11 @@ class ContentArea(val window: Window,
 
 
     private val caretListeners = ArrayList<CaretChangeListener>()
+    private val findListeners = ArrayList<FindStatusListener>()
 
     private val undoMan = UndoManager()
+
+    private val findDialog = FindDialog(window, this)
 
 
     init {
@@ -245,17 +248,17 @@ class ContentArea(val window: Window,
             }
             KeyEvent.VK_RIGHT -> moveCaretForward()
             KeyEvent.VK_Z -> {
-                if (e.isControlDown && undoMan.canUndo()) {
+                if (e.isControlDown && !e.isAltDown && !e.isShiftDown && undoMan.canUndo()) {
                     undoMan.undo()
                 }
             }
             KeyEvent.VK_Y -> {
-                if (e.isControlDown && undoMan.canRedo()) {
+                if (e.isControlDown && !e.isAltDown && !e.isShiftDown && undoMan.canRedo()) {
                     undoMan.redo()
                 }
             }
             KeyEvent.VK_G -> {
-                if (e.isControlDown) {
+                if (e.isControlDown && !e.isAltDown && !e.isShiftDown) {
                     val isDec = e.isAltDown
                     val input = JOptionPane.showInputDialog(window, "请输入地址 (${if (isDec) "DEC" else "HEX"})",
                             plodsoft.mygvm.gui.Window.APP_NAME, JOptionPane.PLAIN_MESSAGE)
@@ -267,11 +270,20 @@ class ContentArea(val window: Window,
                     }
                 }
             }
+            KeyEvent.VK_F3 -> {
+                if (!findDialog.bytes.isEmpty()) {
+                    findBytes(findDialog.bytes, !e.isAltDown)
+                }
+            }
             else -> {
-                val x = Character.digit(e.keyChar, 16)
-                if (x >= 0) {
-                    editContent(x)
-                    moveCaretForward()
+                if (e.keyCode == KeyEvent.VK_F && e.isControlDown) {
+                    findDialog.isVisible = true
+                } else if (!e.isControlDown && !e.isAltDown) {
+                    val x = Character.digit(e.keyChar, 16)
+                    if (x >= 0) {
+                        editContent(x)
+                        moveCaretForward()
+                    }
                 }
             }
         }
@@ -345,6 +357,59 @@ class ContentArea(val window: Window,
         }
     }
 
+    fun findBytes(bytes: ByteArray, next: Boolean) {
+        if (next) {
+            val start = caretAddress + 1
+            if (count + offset - start >= bytes.size) {
+                outer@ for (i in start..(offset + count - bytes.size)) {
+                    for (j in 0 until bytes.size) {
+                        if (data[i + j] != bytes[j]) {
+                            continue@outer
+                        }
+                    }
+                    gotoAddress(i)
+                    fireFindStatusEvent(FindStatusEvent(this, true))
+                    return
+                }
+            }
+            fireFindStatusEvent(FindStatusEvent(this, false))
+        } else {
+            var start = caretAddress - 1
+            if (offset + count - start <= bytes.size) {
+                start = offset + count - bytes.size
+            }
+
+            if (start >= offset) {
+                outer@ for (i in start downTo 0) {
+                    for (j in 0 until bytes.size) {
+                        if (data[i + j] != bytes[j]) {
+                            continue@outer
+                        }
+                    }
+                    gotoAddress(i)
+                    fireFindStatusEvent(FindStatusEvent(this, true))
+                    return
+                }
+            }
+            fireFindStatusEvent(FindStatusEvent(this, false))
+        }
+    }
+
+    fun addFindStatusListener(l: FindStatusListener) {
+        findListeners -= l
+        findListeners += l
+    }
+
+    fun removeFindStatusListener(l: FindStatusListener) {
+        findListeners -= l
+    }
+
+    private fun fireFindStatusEvent(e: FindStatusEvent) {
+        findListeners.forEach {
+            it.findStatusChanged(e)
+        }
+    }
+
     override fun keyReleased(e: KeyEvent) { }
 
     override fun keyTyped(e: KeyEvent) { }
@@ -388,5 +453,6 @@ class ContentArea(val window: Window,
             repaint()
         }
     }
+
 }
 

@@ -223,8 +223,8 @@ class Window : JFrame(APP_NAME) {
                     mnuMenEdit = this
                     addActionListener {
                         val dialog = MemEditDialog(this@Window, (runtime.ramModel as DefaultRamModel).data,
-                                0,
-                                RamModel.SIZE)
+                                Runtime.DEFAULT_GLOBAL_BASE,
+                                runtime.currentFrameEnd - Runtime.DEFAULT_GLOBAL_BASE)
                         dialog.isVisible = true
                     }
                 }

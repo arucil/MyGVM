@@ -50,6 +50,11 @@ class Runtime(val ramModel: RamModel,
         private const val TRUE = -1
         private const val FALSE = 0
 
+        /**
+         * 全局变量起始地址
+         */
+        const val DEFAULT_GLOBAL_BASE = 0x2000
+
         const val FS_ROOT = "GvmFiles"
 
         /**
@@ -112,7 +117,6 @@ class Runtime(val ramModel: RamModel,
                 5 -> action(ScreenModel.DataDrawMode.Xor)
                 /* 默认是copy */
                 else -> {
-                    println(this and 0x7)
                     action(ScreenModel.DataDrawMode.Copy)
                 }
             }
@@ -134,8 +138,7 @@ class Runtime(val ramModel: RamModel,
     private var currentFrameBase: Int = 0
     var currentFrameEnd: Int = 0 // 下一栈帧的起始地址
         private set
-    var initialFrameBase: Int = 0
-        private set
+    private var initialFrameBase: Int = 0
 
     private var isOver = false // 程序是否执行结束
 
@@ -183,6 +186,8 @@ class Runtime(val ramModel: RamModel,
         currentFrameBase = -1
         currentFrameEnd = -1
         initialFrameBase = -1
+
+        ramModel.fill(0x2000, FRAME_STACK_CAPACITY, 0) // 清空栈帧区
 
         stringStackPtr = STRING_STACK_ADDRESS
         stringLiteralXorFactor = 0
@@ -374,7 +379,7 @@ class Runtime(val ramModel: RamModel,
                 ramModel.setUint16(currentFrameEnd + ADDRESS_BYTES, currentFrameBase)
                 currentFrameBase = currentFrameEnd
                 currentFrameEnd += fetchUint16()
-                if (currentFrameBase >= initialFrameBase + FRAME_STACK_CAPACITY) {
+                if (currentFrameBase >= DEFAULT_GLOBAL_BASE + FRAME_STACK_CAPACITY) {
                     throw VMException("frame stack overflow")
                 }
 
