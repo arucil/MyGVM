@@ -4,11 +4,10 @@ import plodsoft.mygvm.Config
 import plodsoft.mygvm.gui.pacview.PacViewer
 import plodsoft.mygvm.keyboard.DefaultKeyboardModel
 import plodsoft.mygvm.memory.DefaultRamModel
-import plodsoft.mygvm.memory.RamModel
 import plodsoft.mygvm.runtime.Runtime
 import plodsoft.mygvm.runtime.VMException
 import plodsoft.mygvm.screen.DefaultScreenModel
-import util.swing.dsl.*
+import plodsoft.mygvm.util.swing.dsl.*
 import java.awt.*
 import java.awt.event.KeyEvent
 import java.awt.event.WindowAdapter

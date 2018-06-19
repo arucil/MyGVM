@@ -2,7 +2,7 @@ package plodsoft.mygvm.gui.pacview
 
 import plodsoft.mygvm.runtime.Runtime
 import plodsoft.mygvm.util.readAll
-import util.swing.dsl.*
+import plodsoft.mygvm.util.swing.dsl.*
 import java.awt.Window
 import java.awt.event.WindowEvent
 import java.io.*
@@ -13,8 +13,6 @@ import javax.swing.*
 import javax.swing.filechooser.FileNameExtensionFilter
 import javax.swing.table.DefaultTableColumnModel
 import javax.swing.table.DefaultTableModel
-import javax.swing.table.TableColumn
-import javax.swing.table.TableColumnModel
 import kotlin.math.floor
 import kotlin.math.log
 

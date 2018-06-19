@@ -1,4 +1,4 @@
-package util.swing.dsl
+package plodsoft.mygvm.util.swing.dsl
 
 import java.awt.PopupMenu
 import javax.swing.*

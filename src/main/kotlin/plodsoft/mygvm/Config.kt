@@ -1,7 +1,7 @@
 package plodsoft.mygvm
 
 import com.nikhaldimann.inieditor.IniEditor
-import plodsoft.mygvm.util.ColorUtil
+import plodsoft.mygvm.util.parseColor
 import java.io.IOException
 import java.lang.NullPointerException
 
@@ -72,7 +72,7 @@ object Config {
         }
 
         try {
-            backgroundColor = ColorUtil.parse(ini.get("UI", "backgroundColor"))
+            backgroundColor = ini.get("UI", "backgroundColor").parseColor()
         } catch (e: NullPointerException) {
             configLoadingException = e
             return
@@ -82,7 +82,7 @@ object Config {
         }
 
         try {
-            foregroundColor = ColorUtil.parse(ini.get("UI", "foregroundColor"))
+            foregroundColor = ini.get("UI", "foregroundColor").parseColor()
         } catch (e: NullPointerException) {
             configLoadingException = e
             return
