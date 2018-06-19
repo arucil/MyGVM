@@ -1,6 +1,7 @@
 package plodsoft.mygvm.gui
 
 import plodsoft.mygvm.Config
+import plodsoft.mygvm.gui.pacview.PacViewer
 import plodsoft.mygvm.keyboard.DefaultKeyboardModel
 import plodsoft.mygvm.memory.DefaultRamModel
 import plodsoft.mygvm.memory.RamModel
@@ -225,6 +226,13 @@ class Window : JFrame(APP_NAME) {
                         val dialog = MemEditDialog(this@Window, (runtime.ramModel as DefaultRamModel).data,
                                 Runtime.DEFAULT_GLOBAL_BASE,
                                 runtime.currentFrameEnd - Runtime.DEFAULT_GLOBAL_BASE)
+                        dialog.isVisible = true
+                    }
+                }
+                separator()
+                item("PAC文件提取") {
+                    addActionListener {
+                        val dialog = PacViewer(this@Window)
                         dialog.isVisible = true
                     }
                 }

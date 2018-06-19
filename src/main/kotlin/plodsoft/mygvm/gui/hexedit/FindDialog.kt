@@ -9,7 +9,7 @@ import java.awt.event.KeyEvent
 import java.nio.charset.Charset
 import javax.swing.*
 
-class FindDialog(owner: Window, private val contentArea: ContentArea) : JDialog(owner) {
+class FindDialog(owner: Window, private val contentArea: ContentArea) : JDialog(owner, "查找", ModalityType.MODELESS) {
     var bytes = ByteArray(0)
         private set
 
@@ -56,8 +56,6 @@ class FindDialog(owner: Window, private val contentArea: ContentArea) : JDialog(
         pack()
 
         rootPane.defaultButton = btnNext
-
-        modalityType = ModalityType.MODELESS
 
         defaultCloseOperation = WindowConstants.HIDE_ON_CLOSE
         setLocationRelativeTo(null)

@@ -19,6 +19,7 @@ fun InputStream.readAll(): ByteArray =
     }
 
 /**
+ * @throws java.io.FileNotFoundException
  * @throws java.io.IOException
  */
 fun File.readAll(): ByteArray =
