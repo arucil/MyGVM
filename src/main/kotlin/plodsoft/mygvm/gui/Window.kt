@@ -135,7 +135,7 @@ class Window : JFrame(APP_NAME) {
     private val pressedKeys = HashSet<Int>()
 
     init {
-        fileChooser.addChoosableFileFilter(FileNameExtensionFilter("GVmaker应用程序", "lav"))
+        fileChooser.fileFilter = FileNameExtensionFilter("GVmaker应用程序", "lav")
 
         setupMenu()
         setupKeyboard()

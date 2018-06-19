@@ -20,6 +20,8 @@ sourceCompatibility = 1.8
 
 mainClassName = 'plodsoft.mygvm.MainKt'
 
+archivesBaseName = 'MyGVM'
+
 repositories {
     mavenCentral()
     flatDir {
