@@ -40,7 +40,7 @@ class PacViewer(owner: Window) : JDialog(owner, "PAC文件提取", ModalityType.
         initUI()
         initMenu()
 
-        openFileChooser.fileFilter = FileNameExtensionFilter("PAC文件", "pac")
+        openFileChooser.fileFilter = FileNameExtensionFilter("PAC文件 (*.pac)", "pac")
 
         saveFileChooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
 
