@@ -108,7 +108,7 @@ class HexEditor(private val window: Window,
         }
 
         addAccel("showFindDialog", "control F") {
-            findDialog.isVisible = true
+            findDialog.showAndFocus()
         }
     }
 

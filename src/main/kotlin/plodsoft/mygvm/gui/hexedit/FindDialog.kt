@@ -84,6 +84,11 @@ class FindDialog(owner: Window, private val contentArea: ContentArea) : JDialog(
         btnPrev.addActionListener(findPrev)
     }
 
+    fun showAndFocus() {
+        isVisible = true
+        textField.requestFocus()
+    }
+
     /**
      * 返回是否转换成功
      */

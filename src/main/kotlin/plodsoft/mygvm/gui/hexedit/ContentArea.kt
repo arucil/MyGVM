@@ -2,6 +2,7 @@ package plodsoft.mygvm.gui.hexedit
 
 import java.awt.*
 import java.awt.event.*
+import java.util.*
 import javax.swing.*
 import javax.swing.undo.AbstractUndoableEdit
 import javax.swing.undo.UndoManager
@@ -355,12 +356,12 @@ class ContentArea(val data: ByteArray,
             fireFindStatusEvent(FindStatusEvent(this, false))
         } else {
             var start = caretAddress - 1
-            if (offset + count - start <= bytes.size) {
+            if (offset + count - start < bytes.size) {
                 start = offset + count - bytes.size
             }
 
             if (start >= offset) {
-                outer@ for (i in start downTo 0) {
+                outer@ for (i in start downTo offset) {
                     for (j in 0 until bytes.size) {
                         if (data[i + j] != bytes[j]) {
                             continue@outer
