@@ -82,6 +82,7 @@ class Window : JFrame(APP_NAME) {
 
             put(KeyEvent.VK_F1, 28)
             put(KeyEvent.VK_F2, 29)
+            put(KeyEvent.VK_BACK_SPACE, 29)
             put(KeyEvent.VK_F3, 30)
             put(KeyEvent.VK_F4, 31)
 
