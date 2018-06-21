@@ -118,6 +118,7 @@ class PacViewer(owner: Window) : JDialog(owner, "PAC文件提取", ModalityType.
                 val totalItems = bytes[16].i() or (bytes[17].i() shl 8)
 
                 tableModel.setNumRows(0)
+                fileItems.clear()
 
                 var offset = 18
                 for (i in 0 until totalItems) {
@@ -157,8 +158,8 @@ class PacViewer(owner: Window) : JDialog(owner, "PAC文件提取", ModalityType.
                         JOptionPane.CLOSED_OPTION -> continue@outer
                         0 -> {}
                         1 -> replaceAll = true
-                        2 -> continue@outer
                         3 -> break@outer
+                        else -> continue@outer
                     }
                 }
                 BufferedOutputStream(FileOutputStream(file)).use {
