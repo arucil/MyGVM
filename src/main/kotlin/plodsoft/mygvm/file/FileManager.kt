@@ -47,7 +47,6 @@ class FileManager(private val fileSystem: FileSystem) {
          */
         set(value) {
             var path = getAbsolutePath(value)
-            println(path)
             if (!fileSystem.isValidDirectory(path)) {
                 throw IllegalArgumentException("Not a valid directory")
             }
