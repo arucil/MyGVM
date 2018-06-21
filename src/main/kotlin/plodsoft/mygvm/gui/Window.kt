@@ -171,6 +171,8 @@ class Window : JFrame(APP_NAME) {
             }
         })
 
+        enableInputMethods(false)
+
         defaultCloseOperation = EXIT_ON_CLOSE
         setLocationRelativeTo(null)
         isResizable = false
