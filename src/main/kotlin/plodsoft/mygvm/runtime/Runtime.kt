@@ -34,7 +34,7 @@ class Runtime(val ramModel: RamModel,
     companion object {
         private const val CODE_INITIAL_OFFSET = 16
         private const val DATA_STACK_CAPACITY = 1024
-        private const val FRAME_STACK_CAPACITY = 20 * 1024 // Lava 20K
+        private const val FRAME_STACK_CAPACITY = 0xc000 // Lava 48K
 
         private const val ADDRESS_BYTES = 3
 

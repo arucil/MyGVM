@@ -12,6 +12,30 @@ class FileManager(private val fileSystem: FileSystem) {
 
         private const val FILE_HANDLE_MARKER = 0x80
         private const val FILE_HANDLE_MASK = 0x7f
+
+        /**
+         * 去除路径中的.. / .
+         */
+        private fun normalizePath(path: String): String =
+            ArrayList<String>().let { res ->
+                path.split('/').forEach {
+                    when (it) {
+                        "", "." -> {}
+                        ".." -> {
+                            if (res.isNotEmpty()) {
+                                res.removeAt(res.size - 1)
+                            }
+                        }
+                        else -> res.add(it)
+                    }
+                }
+                buildString {
+                    append('/')
+                    res.forEach {
+                        append(it).append('/')
+                    }
+                }
+            }
     }
 
     /**
@@ -22,14 +46,15 @@ class FileManager(private val fileSystem: FileSystem) {
          * @throws IllegalArgumentException
          */
         set(value) {
-            val path = getAbsolutePath(value)
+            var path = getAbsolutePath(value)
+            println(path)
             if (!fileSystem.isValidDirectory(path)) {
                 throw IllegalArgumentException("Not a valid directory")
             }
-            field = path
-            if (!field.endsWith('/')) {
-                field += '/'
+            if (!path.endsWith('/')) {
+                path += '/'
             }
+            field = normalizePath(path)
         }
 
     private val openFiles = Array<FileSystem.File?>(MAX_OPEN_FILES) { null }
