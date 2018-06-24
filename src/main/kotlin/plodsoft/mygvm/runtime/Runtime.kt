@@ -78,7 +78,6 @@ class Runtime(val ramModel: RamModel,
             return Runtime(ramModel, screenModel, textModel, keyboardModel, fileSystem)
         }
 
-
         /**
          * 获取从addr开始的以\0结尾的字符串的结尾(\0)地址
          */
@@ -90,19 +89,6 @@ class Runtime(val ramModel: RamModel,
                 ++addr1
             }
             return addr1
-        }
-
-        /**
-         * 把 int 转换为 ShapeDrawMode, 然后调用action. 若 int 不是合法的 mode 值, 则不调用 action
-         */
-        @JvmStatic
-        private inline fun Int.applyShapeDrawMode(action: (ScreenModel.ShapeDrawMode) -> Unit) {
-            when (this and 0x3) {
-                0 -> action(ScreenModel.ShapeDrawMode.Clear)
-                1 -> action(ScreenModel.ShapeDrawMode.Normal)
-                2 -> action(ScreenModel.ShapeDrawMode.Invert)
-                else -> throw VMException("Invalid shape mode: $this")
-            }
         }
 
         /**
@@ -206,6 +192,11 @@ class Runtime(val ramModel: RamModel,
     }
 
     /**
+     * 获取pc
+     */
+    fun getPc(): Int = pc
+
+    /**
      * 执行一条指令
      * @return 程序是否执行结束
      * @throws InterruptedException
@@ -222,7 +213,7 @@ class Runtime(val ramModel: RamModel,
         when {
             op <= 0x51 -> execOpcode(op)
             op in 0x80..0xca -> execFunction(op)
-            else -> throw VMException("非法指令: 0x${op.toString(16)} at PC=${pc - 1}")
+            else -> throw VMException("非法指令: 0x${op.toString(16)} at PC=${pc - 1}", pc - 1)
         }
 
         return isOver
@@ -381,7 +372,7 @@ class Runtime(val ramModel: RamModel,
                 currentFrameBase = currentFrameEnd
                 currentFrameEnd += fetchUint16()
                 if (currentFrameBase >= DEFAULT_GLOBAL_BASE + FRAME_STACK_CAPACITY) {
-                    throw VMException("frame stack overflow")
+                    throw VMException("frame stack overflow", pc - 1)
                 }
 
                 val argc = fetchUint8()
@@ -1143,6 +1134,18 @@ class Runtime(val ramModel: RamModel,
             0xca -> {
                 dataStack.shrink(3)
             }
+        }
+    }
+
+    /**
+     * 把 int 转换为 ShapeDrawMode, 然后调用action. 若 int 不是合法的 mode 值, 则不调用 action
+     */
+    private inline fun Int.applyShapeDrawMode(action: (ScreenModel.ShapeDrawMode) -> Unit) {
+        when (this and 0x3) {
+            0 -> action(ScreenModel.ShapeDrawMode.Clear)
+            1 -> action(ScreenModel.ShapeDrawMode.Normal)
+            2 -> action(ScreenModel.ShapeDrawMode.Invert)
+            else -> throw VMException("Invalid shape mode: $this", pc - 1)
         }
     }
 

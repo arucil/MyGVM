@@ -1,3 +1,4 @@
 package plodsoft.mygvm.runtime
 
-class VMException(message: String) : Exception(message)
+class VMException(message: String, val pc: Int) : Exception(message)
+

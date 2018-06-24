@@ -437,6 +437,7 @@ class Window : JFrame(APP_NAME) {
             } catch (e: Exception) {
                 val stackTrace = with (ByteArrayOutputStream()) {
                     PrintStream(this).use {
+                        it.println("pc=0x${(runtime.getPc() - 1).toString(16)}")
                         e.printStackTrace(it)
                     }
                     String(toByteArray())
